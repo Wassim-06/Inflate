@@ -1,5 +1,7 @@
-import type { Question } from "@/lib/type";
+// ✅ TYPE FIX: On importe le type `Question` qui ne crée pas de conflit
+import type { Question } from "@/lib/schema";
 
+// On type notre tableau avec le type Zod-inféré `Question`
 export const QUESTIONS: Question[] = [
   {
     id: "nps",
@@ -14,9 +16,27 @@ export const QUESTIONS: Question[] = [
     type: "products",
     prompt: "Please rate the following products:",
     products: [
-      { id: "p1", name: "Product 1", image: "https://via.placeholder.com/120" },
-      { id: "p2", name: "Product 2", image: "https://via.placeholder.com/120" },
-      { id: "p3", name: "Product 3", image: "https://via.placeholder.com/120" },
+      { id: "p1", name: "Product 1", image: "https://placehold.co/120x120/E0E0E0/000000?text=P1" },
+      { id: "p2", name: "Product 2", image: "https://placehold.co/120x120/E0E0E0/000000?text=P2" },
+    ],
+  },
+  // Conforme au ScaleQuestionSchema
+  {
+    id: "satisfaction",
+    type: "scale",
+    prompt: "How satisfied are you with the product quality?",
+    scale: 5,
+    leftLabel: "Very unsatisfied",
+    rightLabel: "Very satisfied",
+  },
+  // Conforme au RadioQuestionSchema
+  {
+    id: "packaging",
+    type: "radio",
+    prompt: "Which packaging design do you prefer?",
+    options: [
+      { id: "a", label: "Design A", image: "https://placehold.co/150x150/ff0000/FFFFFF?text=A" },
+      { id: "b", label: "Design B", image: "https://placehold.co/150x150/0000FF/FFFFFF?text=B" },
     ],
   },
   {
@@ -25,16 +45,11 @@ export const QUESTIONS: Question[] = [
     prompt: "What do you think about our delivery method?",
     placeholder: "Your thoughts…",
   },
-  {
-    id: "overall",
-    type: "textarea",
-    prompt: "Please share your overall experience feedback.",
-    placeholder: "Tell us everything…",
-  },
+  // Exemple de multi-choice pour la complétude
   {
     id: "source",
     type: "multi-choice",
     prompt: "How did you hear about our product?",
-    options: ["Instagram", "Publicly", "Word of mouth", "Google"],
-  },
+    options: ["Instagram", "Publicity", "Word of mouth", "Google"],
+  }
 ];
