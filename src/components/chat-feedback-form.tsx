@@ -1,31 +1,36 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+// src/components/chat-feedback-form.tsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Progress } from "@/components/ui/progress";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Send } from "lucide-react";
-import { ThemeToggle } from "./theme-toggle"; // 👈 Importer
+import { motion, AnimatePresence } from "framer-motion";
+import { Send, CheckCircle2 } from "lucide-react";
 
+import { cn } from "@/lib/utils";
 import { defaultCommentForRating } from "@/lib/default-comment-for-rating";
 import { totalSteps } from "@/lib/total-steps";
 import type { ProductReviewAnswer } from "@/lib/type";
-// ✅ TYPES: On importe les nouveaux noms de types
 import type { Branding, Product, ProductsQuestion, Question } from "@/lib/schema";
 
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Progress } from "@/components/ui/progress";
+import { ThemeToggle } from "./theme-toggle";
 import { Spinner } from "./spinner";
 import { StarRating } from "./star-rating";
 import { ChatBubble } from "./chat-bubble";
 
-// ✅ API: La fonction est maintenant consciente du mode de développement
-async function postAnswer(questionId: string, answer: any) {
-  // En mode développement, on simule l'envoi pour éviter les erreurs 404
+type AnswerValue = string | number | ProductReviewAnswer | { rating: number; comment: string };
+
+interface RadioOption {
+  id: string;
+  label: string;
+  image?: string;
+}
+
+// Fonction API mockée avec typage
+async function postAnswer(questionId: string, answer: AnswerValue) {
   if (import.meta.env.DEV) {
     console.log(`[MOCK POST] /api/feedback`, { questionId, answer });
-    // Simule une latence réseau pour le réalisme
-    return new Promise(resolve => setTimeout(resolve, 300));
+    return new Promise(resolve => setTimeout(resolve, 400));
   }
-
-  // En mode production, la vraie requête est effectuée
   try {
     await fetch("/api/feedback", {
       method: "POST",
@@ -34,33 +39,28 @@ async function postAnswer(questionId: string, answer: any) {
     });
   } catch (e) {
     console.error("POST failed", e);
-    // On pourrait vouloir gérer l'erreur dans l'UI ici
   }
 }
 
-// ✅ PROPS: Le composant accepte maintenant `branding`
 interface ChatFormProps {
   questions: Question[];
   firstQuestionValue?: number;
   branding?: Branding;
+  trustpilotLink?: string;
 }
 
-const ChatStyleFeedbackForm: React.FC<ChatFormProps> = ({ questions, firstQuestionValue, branding }) => {
-  const [answers, setAnswers] = useState<Record<string, any>>({});
+const ChatStyleFeedbackForm: React.FC<ChatFormProps> = ({ questions, firstQuestionValue, branding, trustpilotLink }) => {
+  const [answers, setAnswers] = useState<Record<string, AnswerValue>>({});
   const [currentIndex, setCurrentIndex] = useState<number>(0);
-  const [productCursor, setProductCursor] = useState<{
-    idx: number;
-    phase: "rating" | "comment";
-  }>({ idx: 0, phase: "rating" });
-  const [productsAnswer, setProductsAnswer] = useState<ProductReviewAnswer>({
-    ratings: {},
-    comments: {},
-  });
+  const [productCursor, setProductCursor] = useState<{ idx: number; phase: "rating" | "comment"; }>({ idx: 0, phase: "rating" });
+  const [productsAnswer, setProductsAnswer] = useState<ProductReviewAnswer>({ ratings: {}, comments: {} });
   const [sending, setSending] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
   const [submitted, setSubmitted] = useState<Record<string, boolean>>({});
 
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const inputAreaRef = useRef<HTMLDivElement>(null);
+
+  // Génération des bulles de chat
   const messages = useMemo(() => {
     const arr: { role: 'bot' | 'user'; content: React.ReactNode; key: string }[] = [];
     questions.forEach((q, qIdx) => {
@@ -71,46 +71,19 @@ const ChatStyleFeedbackForm: React.FC<ChatFormProps> = ({ questions, firstQuesti
       if (q.type === 'products') {
         const prodQ = q as ProductsQuestion;
         if (isPast || isCurrent) {
-          arr.push({ role: 'bot', content: q.prompt + ' ⭐', key: `bot-q-${q.id}` });
+          arr.push({ role: 'bot', content: q.prompt, key: `bot-q-${q.id}` });
         }
         const until = isPast ? prodQ.products.length : productCursor.idx + 1;
         for (let i = 0; i < until; i++) {
           const p = prodQ.products[i];
-          arr.push({
-            role: 'bot',
-            key: `bot-q-${q.id}-r-${p.id}`,
-            content: (
-              <div className="flex items-center gap-2">
-                {p.image && <img src={p.image} alt={p.name} className="w-10 h-10 rounded object-cover" />}
-                <span>Rate <strong>{p.name}</strong>:</span>
-              </div>
-            ),
-          });
+          arr.push({ role: 'bot', key: `bot-q-${q.id}-r-${p.id}`, content: `Votre note pour **${p.name}** ?` });
+
           if (productsAnswer.ratings[p.id]) {
-            arr.push({
-              role: 'user',
-              content: `${productsAnswer.ratings[p.id]}/5 stars`,
-              key: `user-a-${q.id}-r-${p.id}`,
-            });
+            arr.push({ role: 'user', content: <StarRating value={productsAnswer.ratings[p.id]} readOnly variant="inverted" />, key: `user-a-${q.id}-r-${p.id}` });
+            arr.push({ role: 'bot', key: `bot-q-${q.id}-c-${p.id}`, content: `Un commentaire sur **${p.name}** ?` });
           }
-          if (productsAnswer.comments[p.id] !== undefined) {
-            arr.push({
-              role: 'bot',
-              key: `bot-q-${q.id}-c-${p.id}`,
-              content: (
-                <div className="flex items-center gap-2">
-                  {p.image && <img src={p.image} alt={p.name} className="w-8 h-8 rounded" />}
-                  <span>Leave a short comment about <strong>{p.name}</strong>?</span>
-                </div>
-              ),
-            });
-            if (productsAnswer.comments[p.id] !== '') {
-              arr.push({
-                role: 'user',
-                content: productsAnswer.comments[p.id],
-                key: `user-a-${q.id}-c-${p.id}`,
-              });
-            }
+          if (productsAnswer.comments[p.id]) {
+            arr.push({ role: 'user', content: productsAnswer.comments[p.id], key: `user-a-${q.id}-c-${p.id}` });
           }
         }
         return;
@@ -118,7 +91,7 @@ const ChatStyleFeedbackForm: React.FC<ChatFormProps> = ({ questions, firstQuesti
 
       if (isPast) {
         arr.push({ role: 'bot', content: q.prompt, key: `bot-q-${q.id}` });
-        if (submitted[q.id]) {
+        if (submitted[q.id] && answers[q.id]) {
           arr.push({ role: 'user', content: String(answers[q.id]), key: `user-a-${q.id}` });
         }
       }
@@ -129,33 +102,33 @@ const ChatStyleFeedbackForm: React.FC<ChatFormProps> = ({ questions, firstQuesti
       arr.push({ role: 'bot', content: cq.prompt, key: `bot-q-${cq.id}-current` });
     }
     return arr;
-  }, [questions, currentIndex, productCursor.idx, productsAnswer.ratings, productsAnswer.comments, submitted, answers]);
+  }, [questions, currentIndex, productCursor.idx, productsAnswer, submitted, answers]);
 
   const answeredCount = useMemo(() => {
-    let count = 0;
-    if (answers["nps"]) count++;
-    // ✅ TYPE: On utilise le nouveau nom de type
-    const prodQ = questions?.find((q) => q.id === "products") as ProductsQuestion | undefined;
+    const prodQ = questions?.find((q) => q.type === "products") as ProductsQuestion | undefined;
+    let productAnswersCount = 0;
     if (prodQ) {
-      prodQ.products.forEach((p) => {
-        if (productsAnswer.ratings[p.id]) count++;
-        if (productsAnswer.comments[p.id] !== undefined) count++;
-      });
+      productAnswersCount = Object.keys(productsAnswer.ratings).length + Object.keys(productsAnswer.comments).length;
     }
-    Object.keys(answers).forEach(key => {
-      if (key !== 'nps' && answers[key] !== undefined) {
-        count++;
-      }
-    });
-    return count;
-  }, [answers, productsAnswer.comments, productsAnswer.ratings, questions]);
+    const otherAnswersCount = Object.keys(submitted).filter(id => id !== 'products').length;
+    return productAnswersCount + otherAnswersCount;
+  }, [submitted, productsAnswer, questions]);
 
   const progress = (answeredCount / totalSteps) * 100;
 
+  // Scroll automatique et focus management
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.length, currentIndex, productCursor, answers, productsAnswer]);
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [messages.length]);
 
+  useEffect(() => {
+    setTimeout(() => {
+      const interactiveElement = inputAreaRef.current?.querySelector('button, textarea, input') as HTMLElement | null;
+      interactiveElement?.focus();
+    }, 400); // Léger délai pour attendre l'animation d'entrée
+  }, [currentIndex, productCursor]);
+
+  // Réponse automatique à la première question si la valeur est passée
   useEffect(() => {
     const autoAnswerNPS = async () => {
       if (currentIndex === 0 && firstQuestionValue !== undefined && questions?.[0]?.type === "nps" && answers.nps === undefined) {
@@ -163,31 +136,21 @@ const ChatStyleFeedbackForm: React.FC<ChatFormProps> = ({ questions, firstQuesti
       }
     };
     autoAnswerNPS();
-  }, [firstQuestionValue, questions, currentIndex, answers.nps]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [firstQuestionValue, questions]);
 
-  if (!questions) {
-    return <div className="flex items-center justify-center h-screen"><Spinner /></div>;
-  }
+  // --- Handlers ---
+  const advanceToNextQuestion = (id: string, value: AnswerValue) => {
+    setAnswers((prev) => ({ ...prev, [id]: value }));
+    setSubmitted((s) => ({ ...s, [id]: true }));
+    setCurrentIndex((prev) => prev + 1);
+    setSending(false);
+  };
 
   const handleNps = async (value: number) => {
     setSending(true);
-    setAnswers((prev) => ({ ...prev, nps: value }));
     await postAnswer("nps", value);
-    setSending(false);
-    setSubmitted(prev => ({ ...prev, nps: true }));
-    setCurrentIndex(1);
-  };
-
-  const handleRateAll = (val: number, products: Product[]) => {
-    const ratings: Record<string, number> = {};
-    const comments: Record<string, string> = {};
-    products.forEach((p) => {
-      ratings[p.id] = val;
-      comments[p.id] = defaultCommentForRating(val);
-    });
-    setProductsAnswer({ ratings, comments });
-    // On avance à la fin des produits
-    setCurrentIndex(currentIndex + 1);
+    advanceToNextQuestion("nps", value);
   };
 
   const handleProductRating = (p: Product, value: number) => {
@@ -197,25 +160,16 @@ const ChatStyleFeedbackForm: React.FC<ChatFormProps> = ({ questions, firstQuesti
       updatedComments[p.id] = defaultCommentForRating(value);
     }
     setProductsAnswer({ ratings: updatedRatings, comments: updatedComments });
-    setProductCursor((cur) => ({ idx: cur.idx, phase: "comment" }));
-  };
-
-  const handleProductComment = (p: Product, text: string) => {
-    setProductsAnswer((prev) => ({
-      ...prev,
-      comments: { ...prev.comments, [p.id]: text },
-    }));
+    setProductCursor((cur) => ({ ...cur, phase: "comment" }));
   };
 
   const confirmProductComment = async (p: Product) => {
     setSending(true);
-    await postAnswer(`product:${p.id}`, {
-      rating: productsAnswer.ratings[p.id],
-      comment: productsAnswer.comments[p.id] || "",
-    });
-    setSending(false);
+    const answerPayload = { rating: productsAnswer.ratings[p.id]!, comment: productsAnswer.comments[p.id] || "" };
+    await postAnswer(`product:${p.id}`, answerPayload);
 
-    const prodQ = questions.find((q) => q.id === "products") as ProductsQuestion;
+    setSending(false);
+    const prodQ = questions.find((q) => q.type === "products") as ProductsQuestion;
     if (productCursor.idx < prodQ.products.length - 1) {
       setProductCursor({ idx: productCursor.idx + 1, phase: "rating" });
     } else {
@@ -223,152 +177,187 @@ const ChatStyleFeedbackForm: React.FC<ChatFormProps> = ({ questions, firstQuesti
     }
   };
 
-  const handleTextarea = (id: string, val: string) => {
-    setAnswers((prev) => ({ ...prev, [id]: val }));
-  };
-
   const confirmTextarea = async (id: string) => {
     setSending(true);
-    await postAnswer(id, answers[id]);
-    setSending(false);
-    setSubmitted((s) => ({ ...s, [id]: true }));
-    setCurrentIndex((prev) => prev + 1);
+    const value = answers[id] as string;
+    await postAnswer(id, value);
+    advanceToNextQuestion(id, value);
   };
 
   const handleMultiChoice = async (id: string, choice: string) => {
     setSending(true);
-    setAnswers((prev) => ({ ...prev, [id]: choice }));
     await postAnswer(id, choice);
-    setSending(false);
-    setSubmitted(s => ({ ...s, [id]: true }));
-    setCurrentIndex((prev) => prev + 1);
+    advanceToNextQuestion(id, choice);
   };
 
+  // --- Render ---
   const renderInputArea = () => {
     const q = questions[currentIndex];
     if (!q) return null;
+
+    const animationProps = {
+      key: `${currentIndex}-${productCursor.idx}-${productCursor.phase}`,
+      initial: { opacity: 0, y: 20 },
+      animate: { opacity: 1, y: 0 },
+      exit: { opacity: 0, y: -20 },
+      transition: { duration: 0.3, ease: "easeInOut" } as const,
+    };
 
     switch (q.type) {
       case "nps":
       case "scale": {
         const scale = q.scale ?? 10;
         return (
-          <div className="flex flex-col items-center gap-3">
+          <motion.div {...animationProps} className="flex flex-col items-center gap-3">
             <div className="flex flex-wrap justify-center gap-2">
               {Array.from({ length: scale }).map((_, i) => {
                 const n = i + 1;
                 return (
-                  <Button key={n} variant={answers[q.id] === n ? "default" : "outline"} onClick={() => handleNps(n)} disabled={sending} className="w-10 h-10 rounded-full p-0">
+                  <Button key={n} variant={answers[q.id] === n ? "default" : "outline"} onClick={() => handleNps(n)} disabled={sending} className="w-10 h-10 rounded-full p-0 transition-transform hover:scale-110 active:scale-95" aria-label={`Note de ${n} sur ${scale}`}>
                     {sending && answers[q.id] === n ? <Spinner /> : n}
                   </Button>
                 );
               })}
             </div>
-            <div className="flex justify-between w-full text-xs text-muted-foreground">
+            <div className="flex justify-between w-full text-xs text-muted-foreground px-1">
               <span>{q.leftLabel}</span>
               <span>{q.rightLabel}</span>
             </div>
-          </div>
+          </motion.div>
         );
       }
 
       case "products": {
-        const prodQ = q;
-        const currentProduct = prodQ.products[productCursor.idx];
+        const prodQ = q as ProductsQuestion;
+        const p = prodQ.products[productCursor.idx];
         if (productCursor.phase === "rating") {
           return (
-            <div className="space-y-4 w-full">
-              <StarRating value={productsAnswer.ratings[currentProduct.id] || 0} onChange={(val) => handleProductRating(currentProduct, val)} />
-            </div>
+            <motion.div {...animationProps} className="w-full flex flex-col items-center gap-4">
+              {p.image && <img src={p.image} alt={p.name} className="w-24 h-24 rounded-lg object-cover shadow-md" />}
+              <StarRating value={productsAnswer.ratings[p.id] || 0} onChange={(val) => handleProductRating(p, val)} size={32} />
+            </motion.div>
           );
         }
         return (
-          <div className="space-y-3 w-full">
-            <Textarea value={productsAnswer.comments[currentProduct.id] || ""} onChange={(e) => handleProductComment(currentProduct, e.target.value)} placeholder={`Votre avis sur ${currentProduct.name}...`} rows={3} />
-            <div className="flex justify-end">
-              <Button onClick={() => confirmProductComment(currentProduct)} disabled={sending}>
-                {sending ? <Spinner /> : <><Send className="mr-2 h-4 w-4" /> Envoyer</>}
-              </Button>
-            </div>
-          </div>
+          <motion.div {...animationProps} className="w-full flex items-start gap-2">
+            <Textarea value={productsAnswer.comments[p.id] || ""} onChange={(e) => setProductsAnswer(prev => ({ ...prev, comments: { ...prev.comments, [p.id]: e.target.value } }))} placeholder={`Facultatif : laissez un commentaire...`} rows={1} className="resize-none" />
+            <Button onClick={() => confirmProductComment(p)} disabled={sending} size="icon">
+              {sending ? <Spinner /> : <Send className="h-4 w-4" />}
+            </Button>
+          </motion.div>
         );
       }
 
       case "textarea": {
-        const val = answers[q.id] || "";
+        const val = (answers[q.id] as string) || "";
         return (
-          <div className="w-full flex items-center gap-2">
-            <Textarea placeholder={q.placeholder} value={val} onChange={(e) => handleTextarea(q.id, e.target.value)} rows={1} className="resize-none" />
+          <motion.div {...animationProps} className="w-full flex items-center gap-2">
+            <Textarea placeholder={q.placeholder} value={val} onChange={(e) => setAnswers(prev => ({ ...prev, [q.id]: e.target.value }))} rows={1} className="resize-none" />
             <Button disabled={sending || !val.trim()} onClick={() => confirmTextarea(q.id)} size="icon">
               {sending ? <Spinner /> : <Send className="h-4 w-4" />}
             </Button>
-          </div>
-        );
+          </motion.div>
+        )
       }
 
       case "multi-choice": {
         return (
-          <div className="grid grid-cols-2 gap-3 w-full">
-            {q.options.map((opt) => (
-              <Button key={opt} variant="secondary" className="justify-center" disabled={sending} onClick={() => handleMultiChoice(q.id, opt)}>
+          <motion.div {...animationProps} className="grid grid-cols-2 gap-3 w-full">
+            {q.options.map((opt: string) => ( // Assuming options is string[] for multi-choice
+              <Button key={opt} variant="secondary" size="lg" className="h-auto py-3 justify-center text-center" disabled={sending} onClick={() => handleMultiChoice(q.id, opt)}>
                 {sending && answers[q.id] === opt ? <Spinner /> : opt}
               </Button>
             ))}
-          </div>
-        );
+          </motion.div>
+        )
       }
 
       case "radio": {
         return (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
-            {q.options.map((opt) => (
-              <div key={opt.id} className="relative border rounded-lg p-4 cursor-pointer hover:border-primary" onClick={() => handleMultiChoice(q.id, opt.label)}>
-                {opt.image && <img src={opt.image} alt={opt.label} className="w-full h-32 object-cover rounded-md mb-2" />}
-                <p className="text-center font-medium">{opt.label}</p>
-              </div>
+          <motion.div {...animationProps} className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
+            {(q.options as RadioOption[]).map((opt: RadioOption) => (
+              <button key={opt.id} disabled={sending} onClick={() => handleMultiChoice(q.id, opt.label)} className={cn("group relative border rounded-xl p-4 text-center transition-all duration-200 ease-in-out hover:border-primary/80 hover:bg-accent", { "border-primary bg-primary/10": answers[q.id] === opt.label })}>
+                {opt.image && <img src={opt.image} alt={opt.label} className="w-full h-32 object-cover rounded-md mb-3" />}
+                <p className="font-medium text-foreground">{opt.label}</p>
+                <AnimatePresence>
+                  {answers[q.id] === opt.label && (
+                    <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full h-6 w-6 flex items-center justify-center">
+                      <CheckCircle2 className="h-4 w-4" />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </button>
             ))}
-          </div>
+          </motion.div>
         )
       }
 
-      default:
-        return null;
+      default: return null;
     }
   };
 
   const isDone = currentIndex >= questions.length;
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <div className="sticky top-0 z-20 w-full bg-background/80 backdrop-blur-md">
-        <div className="mx-auto max-w-xl w-full px-4 pt-4 pb-2 flex items-center gap-4">
-          {branding?.logo && (
-            <img src={branding.logo} alt="brand logo" className="h-8 w-auto" />
-          )}
+    <div className="min-h-screen flex flex-col bg-background font-sans">
+      <header className="sticky top-0 z-20 w-full bg-background/80 backdrop-blur-lg border-b">
+        <div className="mx-auto max-w-2xl w-full px-4 py-3 flex items-center gap-4">
+          {branding?.logo && <img src={branding.logo} alt="Logo" className="h-8 w-auto" />}
           <Progress value={progress} className="h-2 flex-1" />
-          <ThemeToggle /> {/* 👈 Ajouter le bouton ici */}
+          <ThemeToggle />
         </div>
-      </div>
+      </header>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 pt-4 pb-44 max-w-xl w-full mx-auto space-y-3">
-        {messages.map((m) => (
-          <ChatBubble key={m.key} role={m.role}>{m.content}</ChatBubble>
-        ))}
+      <main className="flex-1 overflow-y-auto p-4 max-w-2xl w-full mx-auto space-y-4">
+        <AnimatePresence>
+          {messages.map((m) => (
+            <motion.div
+              key={m.key} layout
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+            >
+              <ChatBubble role={m.role}>{m.content}</ChatBubble>
+            </motion.div>
+          ))}
+        </AnimatePresence>
         {isDone && (
-          <ChatBubble role="bot">
-            <div className="space-y-2">
-              <p>🎉 Merci beaucoup ! Vos réponses nous aident à nous améliorer.</p>
-            </div>
-          </ChatBubble>
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+            <ChatBubble role="bot">
+              <div className="space-y-2 text-center">
+                <p className="text-2xl">🎉</p>
+                <p className="font-semibold">Merci beaucoup !</p>
+                <p className="text-sm text-foreground/80">Vos réponses ont bien été enregistrées. Elles nous sont précieuses pour nous améliorer.</p>
+                {trustpilotLink && (
+                  <p className="text-sm">
+                    <a
+                      href={trustpilotLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline font-medium"
+                    >
+                      Donnez votre avis sur Trustpilot !
+                    </a>
+                  </p>
+                )}
+
+              </div>
+            </ChatBubble>
+          </motion.div>
         )}
-      </div>
+        <div ref={bottomRef} className="h-44" />
+      </main>
 
       {!isDone && (
-        <div className="fixed bottom-0 left-0 right-0 bg-background/90 backdrop-blur-md border-t">
-          <div className="max-w-xl mx-auto px-4 py-3">{renderInputArea()}</div>
-        </div>
+        <footer className="fixed bottom-0 left-0 right-0 bg-background/90 backdrop-blur-lg border-t">
+          <div ref={inputAreaRef} className="max-w-2xl mx-auto px-4 py-4 md:py-6">
+            <AnimatePresence mode="wait">
+              {renderInputArea()}
+            </AnimatePresence>
+          </div>
+        </footer>
       )}
-      <div ref={bottomRef} />
     </div>
   );
 };

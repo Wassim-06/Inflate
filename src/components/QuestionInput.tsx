@@ -1,7 +1,6 @@
-// QuestionInput.tsx
+// src/components/QuestionInput.tsx
 import React from 'react';
 
-// ✅ Import des composants shadcn/ui nécessaires
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -18,7 +17,7 @@ const QuestionInput: React.FC<QuestionInputProps> = ({ type, value, onChange, pr
   switch (type) {
     case 'yes/no':
       return (
-        // ✅ Utilisation de RadioGroup pour la compatibilité des thèmes
+        // Utilisation de RadioGroup pour la compatibilité des thèmes
         <RadioGroup value={value} onValueChange={onChange} className="flex items-center gap-6">
           <div className="flex items-center space-x-2">
             <RadioGroupItem value="yes" id="r-yes" />
@@ -32,7 +31,7 @@ const QuestionInput: React.FC<QuestionInputProps> = ({ type, value, onChange, pr
       );
     case 'open':
       return (
-        // ✅ Utilisation du composant Textarea qui gère les thèmes
+        // Utilisation du composant Textarea qui gère les thèmes
         <Textarea
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -41,7 +40,7 @@ const QuestionInput: React.FC<QuestionInputProps> = ({ type, value, onChange, pr
       );
     case 'rating':
       return (
-        // ✅ Utilisation de RadioGroup pour un affichage propre et thématique
+        // Utilisation de RadioGroup pour un affichage propre et thématique
         <RadioGroup value={value} onValueChange={onChange} className="flex flex-wrap gap-4">
           {[...Array(10)].map((_, index) => {
             const ratingValue = (index + 1).toString();
