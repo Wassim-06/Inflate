@@ -4,6 +4,7 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Send } from "lucide-react";
+import { ThemeToggle } from "./theme-toggle"; // 👈 Importer
 
 import { defaultCommentForRating } from "@/lib/default-comment-for-rating";
 import { totalSteps } from "@/lib/total-steps";
@@ -340,12 +341,12 @@ const ChatStyleFeedbackForm: React.FC<ChatFormProps> = ({ questions, firstQuesti
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <div className="sticky top-0 z-20 w-full bg-background/80 backdrop-blur-md">
-        <div className="mx-auto max-w-xl w-full px-4 pt-4 pb-2 flex items-center gap-3">
-          {/* ✅ BRANDING: On utilise le logo de la prop branding */}
+        <div className="mx-auto max-w-xl w-full px-4 pt-4 pb-2 flex items-center gap-4">
           {branding?.logo && (
             <img src={branding.logo} alt="brand logo" className="h-8 w-auto" />
           )}
           <Progress value={progress} className="h-2 flex-1" />
+          <ThemeToggle /> {/* 👈 Ajouter le bouton ici */}
         </div>
       </div>
 

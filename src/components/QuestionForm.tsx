@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import QuestionInput from './QuestionInput';
 
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+
 export interface Question {
-  
+
   question: string;
   type: string;
 }
@@ -62,10 +65,7 @@ const QuestionForm: React.FC<QuestionFormProps> = ({ questions, firstQuestionVal
                     </label>
                   ))}
                 </div>
-                <textarea
-                  placeholder="Add your comment"
-                  className="border border-gray-300 rounded p-2 w-full"
-                />
+                <Textarea placeholder="Add your comment" />
               </div>
             </div>
           ))}
@@ -77,24 +77,21 @@ const QuestionForm: React.FC<QuestionFormProps> = ({ questions, firstQuestionVal
           onChange={handleChange}
         />
       )}
-      <div className="flex justify-between mt-4">
-        {currentStep > 0 && (
-          <button
-            onClick={handleBack}
-            className="bg-gray-500 text-white px-4 py-2 rounded"
-          >
+      <div className="flex justify-between mt-6">
+        {currentStep > 0 ? (
+          <Button variant="outline" onClick={handleBack}>
             Back
-          </button>
+          </Button>
+        ) : (
+          <div /> // Pour garder le bouton "Next" à droite
         )}
         {currentStep < questions.length - 1 && (
-          <button
-            onClick={handleNext}
-            className="bg-blue-500 text-white px-4 py-2 rounded"
-          >
+          <Button onClick={handleNext}>
             Next
-          </button>
+          </Button>
         )}
       </div>
+
     </div>
   );
 };

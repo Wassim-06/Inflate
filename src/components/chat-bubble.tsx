@@ -1,3 +1,5 @@
+// src/components/ChatBubble.tsx
+
 import { cn } from "@/lib/utils";
 
 export const ChatBubble: React.FC<{ role: 'bot' | 'user'; children: React.ReactNode }> = ({ role, children }) => {
@@ -6,7 +8,10 @@ export const ChatBubble: React.FC<{ role: 'bot' | 'user'; children: React.ReactN
       <div
         className={cn(
           'max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm',
-          role === 'bot' ? 'bg-muted text-foreground' : 'bg-black text-white'
+          // ✅ CORRECTION : 'bg-primary text-primary-foreground' s'adapte aux thèmes.
+          role === 'bot'
+            ? 'bg-muted text-foreground'
+            : 'bg-primary text-primary-foreground'
         )}
       >
         {children}

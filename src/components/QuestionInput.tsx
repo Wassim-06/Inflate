@@ -1,3 +1,12 @@
+// QuestionInput.tsx
+import React from 'react';
+
+// ✅ Import des composants shadcn/ui nécessaires
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Textarea } from "@/components/ui/textarea";
+
 interface QuestionInputProps {
   type: string;
   value: string;
@@ -9,52 +18,44 @@ const QuestionInput: React.FC<QuestionInputProps> = ({ type, value, onChange, pr
   switch (type) {
     case 'yes/no':
       return (
-        <div>
-          <label>
-            <input
-              type="radio"
-              value="yes"
-              checked={value === 'yes'}
-              onChange={() => onChange('yes')}
-            />
-            Yes
-          </label>
-          <label>
-            <input
-              type="radio"
-              value="no"
-              checked={value === 'no'}
-              onChange={() => onChange('no')}
-            />
-            No
-          </label>
-        </div>
+        // ✅ Utilisation de RadioGroup pour la compatibilité des thèmes
+        <RadioGroup value={value} onValueChange={onChange} className="flex items-center gap-6">
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="yes" id="r-yes" />
+            <Label htmlFor="r-yes">Yes</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="no" id="r-no" />
+            <Label htmlFor="r-no">No</Label>
+          </div>
+        </RadioGroup>
       );
     case 'open':
       return (
-        <textarea
+        // ✅ Utilisation du composant Textarea qui gère les thèmes
+        <Textarea
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="border border-gray-300 rounded p-2 w-full"
+          placeholder="Votre réponse..."
         />
       );
     case 'rating':
       return (
-        <div>
-          {[...Array(10)].map((_, index) => (
-            <label key={index}>
-              <input
-                type="radio"
-                value={(index + 1).toString()}
-                checked={value === (index + 1).toString()}
-                onChange={() => onChange((index + 1).toString())}
-              />
-              {index + 1}
-            </label>
-          ))}
-        </div>
+        // ✅ Utilisation de RadioGroup pour un affichage propre et thématique
+        <RadioGroup value={value} onValueChange={onChange} className="flex flex-wrap gap-4">
+          {[...Array(10)].map((_, index) => {
+            const ratingValue = (index + 1).toString();
+            return (
+              <div key={index} className="flex items-center space-x-2">
+                <RadioGroupItem value={ratingValue} id={`r-${ratingValue}`} />
+                <Label htmlFor={`r-${ratingValue}`}>{ratingValue}</Label>
+              </div>
+            );
+          })}
+        </RadioGroup>
       );
     case 'product-review':
+
       return (
         <div>
           {products?.map((product, index) => (
@@ -80,7 +81,7 @@ const QuestionInput: React.FC<QuestionInputProps> = ({ type, value, onChange, pr
               />
             </div>
           ))}
-          <button className="bg-blue-500 text-white px-4 py-2 rounded mt-4">Fill All Ratings</button>
+          <Button>Fill All Ratings</Button>
         </div>
       );
     default:
