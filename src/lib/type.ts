@@ -54,3 +54,15 @@ export interface Branding {
   "background": string
   "font": string
 }
+
+export interface ProductReview {
+  rating: number;
+  comment: string;
+}
+
+export type AnswerValue = string | number | string[];
+
+export interface AllAnswers {
+  productReviews: Record<string, ProductReview>;
+  additionalQuestions: Record<string, AnswerValue>;
+}

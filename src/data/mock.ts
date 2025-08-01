@@ -1,4 +1,12 @@
-import type { Question } from "@/lib/schema";
+// src/data/mock.ts
+import type { Question, Branding } from "@/lib/schema"; // Assurez-vous d'importer le type Branding
+
+
+export const MOCK_BRANDING: Branding = {
+  logo: 'https://placehold.co/100x40/000000/FFFFFF?text=Logo',
+  brandColor: '#000000',
+  font: 'Inter, sans-serif',
+};
 
 // On type notre tableau avec le type Zodinféré `Question`
 export const QUESTIONS: Question[] = [

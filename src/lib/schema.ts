@@ -34,6 +34,8 @@ export const RadioOptionSchema = z.object({
   label: z.string(),
   image: z.string().url().optional(),
 });
+// ✅ FIX: Export the inferred type for use in other components.
+export type RadioOption = z.infer<typeof RadioOptionSchema>;
 
 export const RadioQuestionSchema = z.object({
   id: z.string(),
@@ -60,7 +62,7 @@ export const TextareaQuestionSchema = z.object({
 
 // Schema for multi-choice questions
 export const MultiChoiceQuestionSchema = z.object({
-  id: z.string(), // On rend l'id plus générique
+  id: z.string(),
   type: z.literal("multi-choice"),
   prompt: z.string(),
   options: z.array(z.string()),

@@ -3,48 +3,41 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { z } from 'zod';
 
-import ChatStyleFeedbackForm from './components/chat-feedback-form';
 import { Spinner } from './components/spinner';
 import { fetchQuestions } from './api/question';
-import { BrandingSchema, QuestionSchema } from './lib/schema';
+import { BrandingSchema, QuestionSchema, ProductSchema, ProductsQuestionSchema } from './lib/schema'; // Importez tous les schémas nécessaires
+import { ProductReviewFlow } from './components/ProductReviewFlow'; // Le nouveau composant principal
+import { ThemeProvider } from './components/theme-provider';
 
-// On importe les données mockées
-import { QUESTIONS } from './data/mock';
+
+// On importe les données mockées complètes
+import { QUESTIONS, MOCK_BRANDING } from './data/mock'; // Assurez-vous que MOCK_BRANDING est aussi exporté de votre mock.ts
 
 type Branding = z.infer<typeof BrandingSchema>;
 type Question = z.infer<typeof QuestionSchema>;
-
-
-const MOCK_BRANDING: Branding = {
-  logo: 'https://placehold.co/100x40/000000/FFFFFF?text=Logo',
-  brandColor: '#000000',
-  font: 'Inter, sans-serif',
-};
+type Product = z.infer<typeof ProductSchema>;
 
 const App: React.FC = () => {
-  const { orderId, firstQuestionValue } = useParams<{ orderId?: string; firstQuestionValue?: string }>();
+  const { orderId } = useParams<{ orderId?: string }>();
 
   const [questions, setQuestions] = useState<Question[] | undefined>(undefined);
   const [branding, setBranding] = useState<Branding | undefined>(undefined);
   const [loading, setLoading] = useState(true);
 
-  const firstQuestionValueNumber = firstQuestionValue ? parseInt(firstQuestionValue, 10) : undefined;
-
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        // Condition pour le mode développement
         if (import.meta.env.DEV) {
           console.log("🛠️ DEV MODE: Using mock data.");
-          // Simule un petit délai réseau
           setTimeout(() => {
+            // UTILISEZ LES CONSTANTES IMPORTÉES DIRECTEMENT
             setQuestions(QUESTIONS as Question[]);
             setBranding(MOCK_BRANDING as Branding);
             setLoading(false);
           }, 500);
         } else {
-          // Mode production : on exige un orderId
+
           if (!orderId) {
             console.error("PRODUCTION MODE: Order ID is required.");
             setLoading(false);
@@ -52,7 +45,6 @@ const App: React.FC = () => {
           }
           const data = await fetchQuestions(orderId);
           setQuestions(data?.questions as Question[]);
-          // L'API renvoie un tableau, on prend le premier élément
           if (data?.branding && data.branding.length > 0) {
             setBranding(data.branding[0] as Branding);
           }
@@ -69,7 +61,7 @@ const App: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-gray-50">
+      <div className="flex justify-center items-center min-h-screen bg-background">
         <Spinner />
       </div>
     );
@@ -77,22 +69,32 @@ const App: React.FC = () => {
 
   if (!questions || questions.length === 0) {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-gray-50 text-red-600">
-        Error: Could not load questions. Check the console or ensure the Order ID is correct.
+      <div className="flex justify-center items-center min-h-screen bg-background text-destructive">
+        Erreur: Impossible de charger les questions.
       </div>
     );
   }
 
+  // Séparez la question de type "products" des autres questions
+  const productsQuestion = questions.find(q => q.type === 'products');
+  const additionalQuestions = questions.filter(q => q.type !== 'products');
+
+  // Extraire la liste des produits de la question "products"
+  // Utilise le parsing Zod pour garantir que la structure est correcte
+  const productsParseResult = ProductsQuestionSchema.safeParse(productsQuestion);
+  const products: Product[] = productsParseResult.success ? productsParseResult.data.products : [];
+
   return (
-    // On peut passer le branding au composant de chat pour qu'il l'utilise
-    <div style={{ '--brand-color': branding?.brandColor } as React.CSSProperties}>
-      <ChatStyleFeedbackForm
-        questions={questions}
-        firstQuestionValue={firstQuestionValueNumber}
-        branding={branding}
-        trustpilotLink="https://www.trustpilot.com/review/yourwebsite.com"
-      />
-    </div>
+    <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+      <div style={{ '--brand-color': branding?.brandColor } as React.CSSProperties}>
+        <ProductReviewFlow
+          products={products}
+          additionalQuestions={additionalQuestions}
+          trustpilotLink="https://www.trustpilot.com/review/votre-site.com"
+        // Vous pouvez aussi passer le branding si nécessaire dans les étapes
+        />
+      </div>
+    </ThemeProvider>
   );
 };
 
