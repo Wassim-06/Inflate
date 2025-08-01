@@ -57,6 +57,8 @@ const ChatStyleFeedbackForm: React.FC<ChatFormProps> = ({ questions, firstQuesti
   const [sending, setSending] = useState(false);
   const [submitted, setSubmitted] = useState<Record<string, boolean>>({});
 
+  const [currentTextValue, setCurrentTextValue] = useState("");
+
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputAreaRef = useRef<HTMLDivElement>(null);
 
@@ -91,10 +93,24 @@ const ChatStyleFeedbackForm: React.FC<ChatFormProps> = ({ questions, firstQuesti
 
       if (isPast) {
         arr.push({ role: 'bot', content: q.prompt, key: `bot-q-${q.id}` });
-        if (submitted[q.id] && answers[q.id]) {
-          arr.push({ role: 'user', content: String(answers[q.id]), key: `user-a-${q.id}` });
+        if (submitted[q.id] && answers[q.id] !== undefined) { // MODIFIÉ: S'assurer que la réponse existe
+          let userContent: React.ReactNode = null;
+
+          if ((q.type === 'nps' || q.type === 'scale') && typeof answers[q.id] === 'number') {
+            userContent = (
+              <div className="bg-primary text-primary-foreground h-10 w-10 rounded-full flex items-center justify-center font-bold text-sm">
+                {typeof answers[q.id] === "object" ? JSON.stringify(answers[q.id]) : String(answers[q.id])}
+              </div>
+            );
+          } else {
+            // Affichage par défaut pour les autres types (textarea, multi-choice...)
+            userContent = String(answers[q.id]);
+          }
+
+          arr.push({ role: 'user', content: userContent, key: `user-a-${q.id}` });
         }
       }
+
     });
 
     const cq = questions?.[currentIndex];
@@ -116,7 +132,6 @@ const ChatStyleFeedbackForm: React.FC<ChatFormProps> = ({ questions, firstQuesti
 
   const progress = (answeredCount / totalSteps) * 100;
 
-  // Scroll automatique et focus management
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages.length]);
@@ -125,21 +140,40 @@ const ChatStyleFeedbackForm: React.FC<ChatFormProps> = ({ questions, firstQuesti
     setTimeout(() => {
       const interactiveElement = inputAreaRef.current?.querySelector('button, textarea, input') as HTMLElement | null;
       interactiveElement?.focus();
-    }, 400); // Léger délai pour attendre l'animation d'entrée
+    }, 400);
   }, [currentIndex, productCursor]);
 
-  // Réponse automatique à la première question si la valeur est passée
   useEffect(() => {
-    const autoAnswerNPS = async () => {
-      if (currentIndex === 0 && firstQuestionValue !== undefined && questions?.[0]?.type === "nps" && answers.nps === undefined) {
-        await handleNps(firstQuestionValue);
+    const q = questions[currentIndex];
+    if (!q) return;
+
+    if (q.type === 'products' && productCursor.phase === 'comment') {
+      const prodQ = q as ProductsQuestion;
+      const p = prodQ.products[productCursor.idx];
+      // Pré-remplir avec le commentaire par défaut ou un commentaire existant
+      setCurrentTextValue(productsAnswer.comments[p.id] || defaultCommentForRating(productsAnswer.ratings[p.id]!));
+    } else if (q.type === 'textarea') {
+      // Pré-remplir avec la réponse existante ou une chaîne vide
+      setCurrentTextValue((answers[q.id] as string) || "");
+    } else {
+      // Vider pour les autres types de questions
+      setCurrentTextValue("");
+    }
+  }, [currentIndex, productCursor, questions, answers, productsAnswer]);
+
+  useEffect(() => {
+    const autoAnswerFirstQuestion = async () => {
+      const firstQuestion = questions?.[0];
+      if (currentIndex === 0 && firstQuestionValue !== undefined && firstQuestion && (firstQuestion.type === "nps" || firstQuestion.type === "scale") && answers[firstQuestion.id] === undefined) {
+        // On passe l'ID de la première question à la fonction
+        await handleScaleSelect(firstQuestion.id, firstQuestionValue);
       }
     };
-    autoAnswerNPS();
+    autoAnswerFirstQuestion();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [firstQuestionValue, questions]);
 
-  // --- Handlers ---
+
   const advanceToNextQuestion = (id: string, value: AnswerValue) => {
     setAnswers((prev) => ({ ...prev, [id]: value }));
     setSubmitted((s) => ({ ...s, [id]: true }));
@@ -147,25 +181,29 @@ const ChatStyleFeedbackForm: React.FC<ChatFormProps> = ({ questions, firstQuesti
     setSending(false);
   };
 
-  const handleNps = async (value: number) => {
+  const handleScaleSelect = async (questionId: string, value: number) => {
     setSending(true);
-    await postAnswer("nps", value);
-    advanceToNextQuestion("nps", value);
+    // On met à jour la réponse sur le bon ID pour le spinner
+    setAnswers((prev) => ({ ...prev, [questionId]: value }));
+    await postAnswer(questionId, value);
+    advanceToNextQuestion(questionId, value);
   };
 
   const handleProductRating = (p: Product, value: number) => {
     const updatedRatings = { ...productsAnswer.ratings, [p.id]: value };
-    const updatedComments = { ...productsAnswer.comments };
-    if (updatedComments[p.id] === undefined) {
-      updatedComments[p.id] = defaultCommentForRating(value);
-    }
-    setProductsAnswer({ ratings: updatedRatings, comments: updatedComments });
+    setProductsAnswer(prev => ({ ...prev, ratings: updatedRatings }));
     setProductCursor((cur) => ({ ...cur, phase: "comment" }));
   };
 
   const confirmProductComment = async (p: Product) => {
     setSending(true);
-    const answerPayload = { rating: productsAnswer.ratings[p.id]!, comment: productsAnswer.comments[p.id] || "" };
+    const comment = currentTextValue.trim();
+    setProductsAnswer(prev => ({
+      ...prev,
+      comments: { ...prev.comments, [p.id]: comment }
+    }));
+
+    const answerPayload = { rating: productsAnswer.ratings[p.id]!, comment: comment };
     await postAnswer(`product:${p.id}`, answerPayload);
 
     setSending(false);
@@ -179,7 +217,7 @@ const ChatStyleFeedbackForm: React.FC<ChatFormProps> = ({ questions, firstQuesti
 
   const confirmTextarea = async (id: string) => {
     setSending(true);
-    const value = answers[id] as string;
+    const value = currentTextValue.trim();
     await postAnswer(id, value);
     advanceToNextQuestion(id, value);
   };
@@ -190,7 +228,6 @@ const ChatStyleFeedbackForm: React.FC<ChatFormProps> = ({ questions, firstQuesti
     advanceToNextQuestion(id, choice);
   };
 
-  // --- Render ---
   const renderInputArea = () => {
     const q = questions[currentIndex];
     if (!q) return null;
@@ -213,7 +250,17 @@ const ChatStyleFeedbackForm: React.FC<ChatFormProps> = ({ questions, firstQuesti
               {Array.from({ length: scale }).map((_, i) => {
                 const n = i + 1;
                 return (
-                  <Button key={n} variant={answers[q.id] === n ? "default" : "outline"} onClick={() => handleNps(n)} disabled={sending} className="w-10 h-10 rounded-full p-0 transition-transform hover:scale-110 active:scale-95" aria-label={`Note de ${n} sur ${scale}`}>
+                  <Button
+                    key={n}
+                    variant={answers[q.id] === n ? "default" : "outline"}
+                    onClick={() => handleScaleSelect(q.id, n)}
+                    disabled={sending}
+                    className={cn(
+                      "w-10 h-10 rounded-full p-0 transition-all duration-200 hover:scale-110 active:scale-95",
+                      answers[q.id] === n && "shadow-lg shadow-primary/50" // Ajout de l'ombre pour la sélection
+                    )}
+                    aria-label={`Note de ${n} sur ${scale}`}
+                  >
                     {sending && answers[q.id] === n ? <Spinner /> : n}
                   </Button>
                 );
@@ -240,7 +287,7 @@ const ChatStyleFeedbackForm: React.FC<ChatFormProps> = ({ questions, firstQuesti
         }
         return (
           <motion.div {...animationProps} className="w-full flex items-start gap-2">
-            <Textarea value={productsAnswer.comments[p.id] || ""} onChange={(e) => setProductsAnswer(prev => ({ ...prev, comments: { ...prev.comments, [p.id]: e.target.value } }))} placeholder={`Facultatif : laissez un commentaire...`} rows={1} className="resize-none" />
+            <Textarea value={currentTextValue} onChange={(e) => setCurrentTextValue(e.target.value)} placeholder={`Facultatif : laissez un commentaire...`} rows={1} className="resize-none" />
             <Button onClick={() => confirmProductComment(p)} disabled={sending} size="icon">
               {sending ? <Spinner /> : <Send className="h-4 w-4" />}
             </Button>
@@ -249,11 +296,10 @@ const ChatStyleFeedbackForm: React.FC<ChatFormProps> = ({ questions, firstQuesti
       }
 
       case "textarea": {
-        const val = (answers[q.id] as string) || "";
         return (
           <motion.div {...animationProps} className="w-full flex items-center gap-2">
-            <Textarea placeholder={q.placeholder} value={val} onChange={(e) => setAnswers(prev => ({ ...prev, [q.id]: e.target.value }))} rows={1} className="resize-none" />
-            <Button disabled={sending || !val.trim()} onClick={() => confirmTextarea(q.id)} size="icon">
+            <Textarea placeholder={q.placeholder} value={currentTextValue} onChange={(e) => setCurrentTextValue(e.target.value)} rows={1} className="resize-none" />
+            <Button disabled={sending || !currentTextValue.trim()} onClick={() => confirmTextarea(q.id)} size="icon">
               {sending ? <Spinner /> : <Send className="h-4 w-4" />}
             </Button>
           </motion.div>
@@ -276,9 +322,16 @@ const ChatStyleFeedbackForm: React.FC<ChatFormProps> = ({ questions, firstQuesti
         return (
           <motion.div {...animationProps} className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
             {(q.options as RadioOption[]).map((opt: RadioOption) => (
-              <button key={opt.id} disabled={sending} onClick={() => handleMultiChoice(q.id, opt.label)} className={cn("group relative border rounded-xl p-4 text-center transition-all duration-200 ease-in-out hover:border-primary/80 hover:bg-accent", { "border-primary bg-primary/10": answers[q.id] === opt.label })}>
-                {opt.image && <img src={opt.image} alt={opt.label} className="w-full h-32 object-cover rounded-md mb-3" />}
-                <p className="font-medium text-foreground">{opt.label}</p>
+              <button key={opt.id} disabled={sending} onClick={() => handleMultiChoice(q.id, opt.label)} className={cn(
+                "group relative border bg-white/5 dark:bg-black/10 border-white/10 rounded-xl p-4 text-center transition-all duration-300 ease-in-out",
+                "hover:bg-white/10 dark:hover:bg-black/20 hover:border-primary/50",
+                { "ring-2 ring-primary ring-offset-2 ring-offset-background": answers[q.id] === opt.label }
+              )}
+              ><div className="absolute -inset-px rounded-xl border border-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" style={{
+                background: 'radial-gradient(400px circle at 50% 50%, hsl(var(--primary) / 0.2), transparent 80%)'
+              }}></div>
+                {opt.image && <img src={opt.image} alt={opt.label} className="w-full h-32 object-cover rounded-md mb-3 transition-transform duration-300 group-hover:scale-105" />}
+                <p className="font-medium text-foreground relative z-10">{opt.label}</p>
                 <AnimatePresence>
                   {answers[q.id] === opt.label && (
                     <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full h-6 w-6 flex items-center justify-center">
@@ -299,8 +352,11 @@ const ChatStyleFeedbackForm: React.FC<ChatFormProps> = ({ questions, firstQuesti
   const isDone = currentIndex >= questions.length;
 
   return (
-    <div className="min-h-screen flex flex-col bg-background font-sans">
-      <header className="sticky top-0 z-20 w-full bg-background/80 backdrop-blur-lg border-b">
+    <div className="min-h-screen flex flex-col font-sans bg-neutral-100 dark:bg-neutral-900">
+      {/* On ajoute un fond animé qui restera fixe derrière le contenu */}
+      <div className="fixed inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px] dark:bg-black dark:bg-[linear-gradient(to_right,#ffffff0a_1px,transparent_1px),linear-gradient(to_bottom,#ffffff0a_1px,transparent_1px)]"></div>
+      <div className="fixed inset-0 -z-20 h-full w-full bg-gradient-to-br from-primary/10 via-transparent to-primary/10 blur-3xl"></div>
+      <header className="sticky top-0 z-20 w-full bg-background/50 backdrop-blur-xl border-b border-white/10">
         <div className="mx-auto max-w-2xl w-full px-4 py-3 flex items-center gap-4">
           {branding?.logo && <img src={branding.logo} alt="Logo" className="h-8 w-auto" />}
           <Progress value={progress} className="h-2 flex-1" />
@@ -341,7 +397,6 @@ const ChatStyleFeedbackForm: React.FC<ChatFormProps> = ({ questions, firstQuesti
                     </a>
                   </p>
                 )}
-
               </div>
             </ChatBubble>
           </motion.div>
@@ -350,7 +405,7 @@ const ChatStyleFeedbackForm: React.FC<ChatFormProps> = ({ questions, firstQuesti
       </main>
 
       {!isDone && (
-        <footer className="fixed bottom-0 left-0 right-0 bg-background/90 backdrop-blur-lg border-t">
+        <footer className="fixed bottom-0 left-0 right-0 bg-background/50 backdrop-blur-xl border-t border-white/10">
           <div ref={inputAreaRef} className="max-w-2xl mx-auto px-4 py-4 md:py-6">
             <AnimatePresence mode="wait">
               {renderInputArea()}

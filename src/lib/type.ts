@@ -1,4 +1,4 @@
-
+// src/lib/type.ts
 export type QuestionType = 'nps' | 'products' | 'textarea' | 'multi-choice'
 
 export interface BaseQuestion<T = unknown> {

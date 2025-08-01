@@ -1,7 +1,6 @@
-// ✅ TYPE FIX: On importe le type `Question` qui ne crée pas de conflit
 import type { Question } from "@/lib/schema";
 
-// On type notre tableau avec le type Zod-inféré `Question`
+// On type notre tableau avec le type Zodinféré `Question`
 export const QUESTIONS: Question[] = [
   {
     id: "nps",
