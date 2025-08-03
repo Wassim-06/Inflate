@@ -100,9 +100,7 @@ export const TrustpilotStep: React.FC<TrustpilotStepProps> = ({ onPublish }) => 
               onClick={onPublish}
               className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-4 text-lg shadow-lg shadow-green-500/25 transition-all duration-300 hover:shadow-xl hover:shadow-green-500/35 group"
             >
-              <ExternalLink className="h-5 w-5 mr-2 group-hover:rotate-12 transition-transform duration-200" />
               Publier sur Trustpilot
-              <ArrowRight className="h-5 w-5 ml-2 group-hover:translate-x-1 transition-transform duration-200" />
             </Button>
           </motion.div>
         </Card>

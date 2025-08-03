@@ -238,7 +238,7 @@ export const ProductReviewStep: React.FC<ProductReviewStepProps> = ({ products, 
             <motion.img
               src={branding.logo}
               alt="Logo de la marque"
-              className="mx-auto h-12 mb-6"
+              className="mx-auto h-22 mb-6"
               whileHover={{ scale: 1.05 }}
               transition={{ type: "spring", stiffness: 400, damping: 17 }}
             />
@@ -249,24 +249,6 @@ export const ProductReviewStep: React.FC<ProductReviewStepProps> = ({ products, 
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
             Votre avis compte ! Aidez-nous à améliorer nos produits en partageant votre expérience.
           </p>
-
-          {/* Progress Indicator */}
-          <div className="max-w-md mx-auto">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-sm font-medium text-muted-foreground">Progression</span>
-              <span className="text-sm font-medium text-primary">
-                {completedCount}/{products.length}
-              </span>
-            </div>
-            <div className="w-full bg-secondary rounded-full h-2">
-              <motion.div
-                className="bg-gradient-to-r from-primary to-primary/80 h-2 rounded-full"
-                initial={{ width: 0 }}
-                animate={{ width: `${progressPercentage}%` }}
-                transition={{ duration: 0.5, ease: "easeOut" }}
-              />
-            </div>
-          </div>
         </motion.div>
 
         {/* Global Rating Section */}

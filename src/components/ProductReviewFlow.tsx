@@ -81,7 +81,7 @@ export const ProductReviewFlow: React.FC<ProductReviewFlowProps> = ({ products, 
         {/* Header avec progress */}
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="max-w-4xl mx-auto mb-8">
           <Card className="p-6 bg-card/50 backdrop-blur-sm border-border/50">
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
               <div className="flex items-center gap-3">
                 <div
                   className={`
@@ -95,16 +95,6 @@ export const ProductReviewFlow: React.FC<ProductReviewFlowProps> = ({ products, 
                   Étape {step === "review" ? "1" : "2"} sur 2
                 </span>
               </div>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleRestart}
-                className="gap-2 hover:bg-muted/50 transition-colors bg-transparent"
-              >
-                <RotateCcw className="h-4 w-4" />
-                Recommencer
-              </Button>
             </div>
 
             <div className="space-y-2">

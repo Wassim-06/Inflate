@@ -2,7 +2,7 @@
 import type { Question, Branding, Product } from "@/lib/schema";
 
 export const MOCK_BRANDING: Branding = {
-  logo: 'https://placehold.co/100x40/000000/FFFFFF?text=MA+MARQUE',
+  logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/76/Louis_Vuitton_logo_and_wordmark.svg/246px-Louis_Vuitton_logo_and_wordmark.svg.png?20220207052202',
   brandColor: '#000000',
   font: 'Inter, sans-serif',
 };
