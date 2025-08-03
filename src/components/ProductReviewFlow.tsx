@@ -1,89 +1,84 @@
-// src/components/ProductReviewFlow.tsx
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import type { Product, Question, Branding } from '@/lib/schema';
-import type { AllAnswers, ProductReview } from '@/lib/type';
-import { ScopeChoiceStep } from './steps/ScopeChoiceStep';
+import { AnimatePresence, motion } from 'framer-motion';
 import { ProductReviewStep } from './steps/ProductReviewStep';
-import { AdditionalQuestionsStep } from './steps/AdditionalQuestionsStep';
 import { TrustpilotStep } from './steps/TrustpilotStep';
-import { ThemeToggle } from './theme-toggle';
-
-type ReviewStep = 'SCOPE_CHOICE' | 'PRODUCT_REVIEW' | 'ADDITIONAL_QUESTIONS' | 'TRUSTPILOT';
+import type { Product, Branding } from '@/lib/schema';
+import type { ProductReview } from '@/lib/type';
+import { Progress } from './ui/progress';
+import { Button } from './ui/button';
+import { Spinner } from './spinner';
 
 interface ProductReviewFlowProps {
     products: Product[];
-    additionalQuestions: Question[];
-    trustpilotLink?: string;
-    branding?: Branding;
+    branding: Branding;
+    trustpilotLink: string;
 }
 
-export const ProductReviewFlow: React.FC<ProductReviewFlowProps> = ({ products, additionalQuestions, trustpilotLink, branding }) => {
-    const [currentStep, setCurrentStep] = useState<ReviewStep>('SCOPE_CHOICE');
-    const [answers, setAnswers] = useState<Partial<AllAnswers>>({});
-    const [reviewScope, setReviewScope] = useState<'single' | 'bulk' | null>(null);
+// Fausse fonction pour simuler un envoi des avis
+async function postReviews(reviews: Record<string, ProductReview>) {
+    console.log("🚀 Envoi des avis vers l'API...", reviews);
+    return new Promise(resolve => setTimeout(resolve, 800));
+}
 
-    const handleScopeChosen = (scope: 'single' | 'bulk', selectedProduct?: Product) => {
-        setReviewScope(scope);
-        if (scope === 'single' && selectedProduct) {
-            setAnswers(prev => ({ ...prev, productReviews: { [selectedProduct.id]: { rating: 0, comment: '' } } }));
-        }
-        setCurrentStep('PRODUCT_REVIEW');
+export const ProductReviewFlow: React.FC<ProductReviewFlowProps> = ({ products, branding, trustpilotLink }) => {
+    const [step, setStep] = useState<'review' | 'trustpilot'>('review');
+    const [isLoading, setIsLoading] = useState(false);
+
+    const handleReviewSubmit = async (reviews: Record<string, ProductReview>) => {
+        setIsLoading(true);
+        await postReviews(reviews);
+        setIsLoading(false);
+        setStep('trustpilot');
     };
-
-    const handleProductsReviewed = (productAnswers: Record<string, ProductReview>) => {
-        setAnswers(prev => ({ ...prev, productReviews: productAnswers }));
-        setCurrentStep('ADDITIONAL_QUESTIONS');
-    };
-
-    const handleQuestionsAnswered = (additionalAnswers: Record<string, any>) => {
-        setAnswers(prev => ({ ...prev, additionalQuestions: additionalAnswers }));
-        setCurrentStep('TRUSTPILOT');
-    };
-
-    const renderCurrentStep = () => {
-        switch (currentStep) {
-            case 'SCOPE_CHOICE':
-                return <ScopeChoiceStep products={products} onNext={handleScopeChosen} />;
-            case 'PRODUCT_REVIEW':
-                const productsToReview = reviewScope === 'single'
-                    ? products.filter(p => answers.productReviews && p.id in answers.productReviews)
-                    : products;
-                return <ProductReviewStep products={productsToReview} onNext={handleProductsReviewed} reviewScope={reviewScope} />;
-            case 'ADDITIONAL_QUESTIONS':
-                return <AdditionalQuestionsStep questions={additionalQuestions} onNext={handleQuestionsAnswered} />;
-            case 'TRUSTPILOT':
-                return <TrustpilotStep trustpilotLink={trustpilotLink} />;
-            default:
-                return <div>Étape inconnue</div>;
+    
+    const handlePublishToTrustpilot = () => {
+        if (trustpilotLink) {
+            window.open(trustpilotLink, '_blank', 'noopener,noreferrer');
         }
     };
+    
+    const progressValue = step === 'review' ? 50 : 100;
 
     return (
-        <div className="relative min-h-screen w-full bg-background font-sans text-foreground">
-            <div className="fixed inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px] dark:bg-zinc-950 dark:bg-[linear-gradient(to_right,#ffffff0a_1px,transparent_1px),linear-gradient(to_bottom,#ffffff0a_1px,transparent_1px)]" />
-            <div className="fixed inset-0 -z-20 h-full w-full bg-gradient-to-br from-primary/10 via-transparent to-secondary/10" />
-
-            <header className="sticky top-0 z-10 backdrop-blur-md">
-                <div className="container mx-auto flex max-w-5xl items-center justify-between p-4">
-                    {branding?.logo ? <img src={branding.logo} alt="Logo" className="h-8" /> : <div />}
-                    <ThemeToggle />
+        <main className="container mx-auto p-4 md:p-8">
+            <div className="max-w-3xl mx-auto mb-8">
+                <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm font-medium text-muted-foreground">
+                        Étape {step === 'review' ? '1' : '2'} sur 2
+                    </span>
+                     <Button variant="ghost" size="sm" onClick={() => window.location.reload()}>
+                        Recommencer
+                    </Button>
                 </div>
-            </header>
+                <Progress value={progressValue} className="w-full" />
+            </div>
 
-            <main className="container mx-auto max-w-3xl p-4">
-                <AnimatePresence mode="wait">
-                    <motion.div
-                        key={currentStep}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        transition={{ duration: 0.3 }}
-                    >
-                        {renderCurrentStep()}
-                    </motion.div>
-                </AnimatePresence>
-            </main>
-        </div>
+            <AnimatePresence mode="wait">
+                 <motion.div
+                    key={step}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.4, ease: 'easeInOut' }}
+                 >
+                    {step === 'review' ? (
+                        <ProductReviewStep 
+                            products={products}
+                            branding={branding}
+                            onNext={handleReviewSubmit}
+                        />
+                    ) : (
+                        <TrustpilotStep onPublish={handlePublishToTrustpilot} />
+                    )}
+                 </motion.div>
+            </AnimatePresence>
+
+            {isLoading && (
+                 <div className="fixed inset-0 bg-background/80 flex flex-col items-center justify-center z-50 backdrop-blur-sm">
+                    <Spinner />
+                    <p className="mt-4 text-sm text-muted-foreground">Enregistrement de vos avis...</p>
+                 </div>
+            )}
+        </main>
     );
 };

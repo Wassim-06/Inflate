@@ -1,53 +1,44 @@
-// src/components/steps/TrustpilotStep.tsx
-import React, { useState } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
-// Vous pouvez utiliser une librairie comme 'react-confetti'
-// import Confetti from 'react-confetti';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 interface TrustpilotStepProps {
-    trustpilotLink?: string;
+    onPublish: () => void;
 }
 
-export const TrustpilotStep: React.FC<TrustpilotStepProps> = ({ trustpilotLink }) => {
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    // SUPPRIMEZ CETTE LIGNE : const [showConfetti, setShowConfetti] = useState(false);
-
-    const handlePublish = () => {
-        // Ici vous pouvez déclencher un effet visuel si vous ajoutez une librairie de confetti
-        // Par exemple: setShowConfetti(true);
-
-        // Ouvrir le lien après une courte animation
-        setTimeout(() => {
-            if (trustpilotLink) {
-                window.open(trustpilotLink, '_blank');
-            }
-            setIsModalOpen(false); // Fermer la modale
-        }, 1000); // Réduit à 1s
-    }
-
+export const TrustpilotStep: React.FC<TrustpilotStepProps> = ({ onPublish }) => {
     return (
-        <div className="flex flex-col items-center justify-center text-center h-[50vh] gap-6">
-            {/* showConfetti && <Confetti /> */}
-            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}>
-                <h1 className="text-4xl font-bold">Boom! 💥</h1>
-                <p className="text-muted-foreground mt-2">Vous y êtes presque. Publiez votre avis sur Trustpilot.</p>
+        <div className="flex flex-col items-center justify-center text-center h-[60vh] gap-8 p-4">
+            <motion.div 
+                initial={{ scale: 0.8, opacity: 0 }} 
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.5, ease: 'easeOut' }}
+                className="w-full"
+            >
+                <h1 className="text-4xl md:text-5xl font-bold tracking-tighter">Un dernier geste... ✨</h1>
+                <p className="text-muted-foreground mt-3 max-w-md mx-auto">Partagez votre expérience sur Trustpilot pour aider notre communauté. Votre avis est précieux !</p>
             </motion.div>
 
-            <Button size="lg" onClick={() => setIsModalOpen(true)}>Publier sur Trustpilot</Button>
-
-            <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Confirmer la publication ?</DialogTitle>
-                        <DialogDescription>
-                            Vous allez être redirigé vers Trustpilot pour finaliser la publication de votre avis.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <Button onClick={handlePublish} className="w-full">Je publie sur Trustpilot</Button>
-                </DialogContent>
-            </Dialog>
+            <motion.div
+                animate={{
+                    scale: [1, 1.03, 1],
+                    y: [0, -5, 0],
+                }}
+                transition={{
+                    duration: 1.5,
+                    ease: "easeInOut",
+                    repeat: Infinity,
+                    repeatType: "mirror"
+                }}
+            >
+                <Button 
+                    size="lg" 
+                    onClick={onPublish}
+                    className="bg-green-600 hover:bg-green-700 text-white font-semibold px-10 py-6 text-lg shadow-lg shadow-green-500/20 transition-all hover:shadow-xl hover:shadow-green-500/30"
+                >
+                    Publier sur Trustpilot
+                </Button>
+            </motion.div>
         </div>
     );
 };
