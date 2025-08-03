@@ -1,3 +1,4 @@
+// src/App.tsx
 import React, { useEffect, useState } from 'react';
 import { z } from 'zod';
 import { Spinner } from './components/spinner';
@@ -5,6 +6,7 @@ import { ThemeProvider } from './components/theme-provider';
 import { ProductReviewFlow } from './components/ProductReviewFlow';
 import { BrandingSchema, ProductSchema } from './lib/schema';
 import { MOCK_BRANDING, MOCK_PRODUCTS } from './data/mock';
+import { QUESTIONS } from "./data/mock"
 
 type Branding = z.infer<typeof BrandingSchema>;
 type Product = z.infer<typeof ProductSchema>;
@@ -39,9 +41,10 @@ const App: React.FC = () => {
         <ThemeProvider defaultTheme="light" storageKey="ui-theme">
             <div style={{ '--brand-color': branding?.brandColor } as React.CSSProperties}>
                 <ProductReviewFlow
-                    products={products}
-                    branding={branding}
-                    trustpilotLink="https://www.trustpilot.com/review/exemple.com"
+                products={products}
+                branding={branding}
+                trustpilotLink="https://www.trustpilot.com/review/exemple.com"
+                questions={QUESTIONS}
                 />
             </div>
         </ThemeProvider>

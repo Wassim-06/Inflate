@@ -1,3 +1,4 @@
+// src/components/steps/TrustpilotStep.tsx
 "use client"
 
 import type React from "react"
@@ -5,7 +6,7 @@ import { useState } from "react"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { ExternalLink, Star, CheckCircle2, ArrowRight } from "lucide-react"
+import { Star, CheckCircle2 } from "lucide-react"
 
 interface TrustpilotStepProps {
   onPublish: () => void

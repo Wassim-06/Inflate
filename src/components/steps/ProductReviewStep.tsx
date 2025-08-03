@@ -1,3 +1,4 @@
+// src/components/steps/ProductReviewStep.tsx
 "use client"
 
 import type React from "react"
@@ -13,7 +14,7 @@ import type { ProductReview } from "@/lib/type"
 import { motion, AnimatePresence } from "framer-motion"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { CheckCircle2, Info, Sparkles } from "lucide-react"
+import { CheckCircle2, Info, Sparkles, AlertCircle } from "lucide-react"
 
 interface ProductReviewStepProps {
   products: Product[]
@@ -192,9 +193,18 @@ export const ProductReviewStep: React.FC<ProductReviewStepProps> = ({ products, 
   )
   const [globalRating, setGlobalRating] = useState<number>(0)
   const [useGlobalRating, setUseGlobalRating] = useState<boolean>(false)
+  
+  // Nouvel état pour l'avis général obligatoire
+  const [globalComment, setGlobalComment] = useState<string>("")
+  const [globalCommentError, setGlobalCommentError] = useState<boolean>(false)
+  
   const [completedCount, setCompletedCount] = useState(0)
 
   const handleUpdateReview = (productId: string, field: keyof ProductReview, value: string | number) => {
+    // Désactiver le switch global si l'utilisateur modifie une note spécifique
+    if (useGlobalRating && field === "rating") {
+      setUseGlobalRating(false)
+    }
     setReviews((prev) => ({
       ...prev,
       [productId]: { ...prev[productId], [field]: value },
@@ -216,12 +226,30 @@ export const ProductReviewStep: React.FC<ProductReviewStepProps> = ({ products, 
     setCompletedCount(completed)
   }, [reviews])
 
-  const isSubmitDisabled = Object.values(reviews).some((review) => review.rating === 0)
-  const progressPercentage = (completedCount / products.length) * 100
+  // Le bouton est désormais désactivé si toutes les notes ne sont pas remplies OU si l'avis général est vide
+  const isSubmitDisabled = Object.values(reviews).some((review) => review.rating === 0) || globalComment.trim() === ""
 
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
+  }
+
+  // Nouvelle fonction de soumission qui gère l'avis général
+  const handleSubmit = () => {
+    if (globalComment.trim() === "") {
+      setGlobalCommentError(true)
+      return
+    }
+
+    const finalReviews: Record<string, ProductReview> = {}
+    for (const productId in reviews) {
+      finalReviews[productId] = {
+        ...reviews[productId],
+        // Applique l'avis général si le commentaire du produit est vide
+        comment: reviews[productId].comment.trim() || globalComment.trim(),
+      }
+    }
+    onNext(finalReviews)
   }
 
   return (
@@ -298,6 +326,50 @@ export const ProductReviewStep: React.FC<ProductReviewStepProps> = ({ products, 
           </Card>
         </motion.div>
 
+        {/* Nouvelle section pour l'avis général obligatoire */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.3 }}
+        >
+          <Card className={`p-6 transition-all ${globalCommentError ? 'ring-2 ring-red-500' : 'border-border'}`}>
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <label htmlFor="global-comment" className="text-lg font-semibold tracking-tight">
+                  Votre avis général *
+                </label>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Ce texte est primordial pour nous. Il sera appliqué aux produits que vous n'avez pas commentés individuellement.
+              </p>
+              <Textarea
+                id="global-comment"
+                placeholder="Comment s'est passée votre expérience globale avec nos produits ?"
+                value={globalComment}
+                onChange={(e) => {
+                  setGlobalComment(e.target.value)
+                  if (globalCommentError) setGlobalCommentError(false)
+                }}
+                rows={4}
+                className="text-sm"
+                required
+              />
+              <AnimatePresence>
+                {globalCommentError && (
+                  <motion.p 
+                    initial={{ opacity: 0, y: -10 }} 
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="text-sm text-red-600 flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4" />
+                    Veuillez laisser un avis général pour continuer.
+                  </motion.p>
+                )}
+              </AnimatePresence>
+            </div>
+          </Card>
+        </motion.div>
+
         {/* Products List */}
         <motion.div className="space-y-6" variants={containerVariants}>
           {products.map((product: Product, index) => (
@@ -305,12 +377,7 @@ export const ProductReviewStep: React.FC<ProductReviewStepProps> = ({ products, 
               key={product.id}
               product={product}
               review={reviews[product.id]}
-              onUpdate={(field, value) => {
-                if (useGlobalRating && field === "rating") {
-                  setUseGlobalRating(false)
-                }
-                handleUpdateReview(product.id, field, value)
-              }}
+              onUpdate={(field, value) => handleUpdateReview(product.id, field, value)}
               isCompleted={reviews[product.id].rating > 0}
               index={index}
             />
@@ -332,11 +399,11 @@ export const ProductReviewStep: React.FC<ProductReviewStepProps> = ({ products, 
                 className="text-sm text-muted-foreground flex items-center gap-2"
               >
                 <Info className="h-4 w-4" />
-                Veuillez noter tous les produits pour continuer
+                Veuillez noter tous les produits et laisser un avis général
               </motion.p>
             )}
             <Button
-              onClick={() => onNext(reviews)}
+              onClick={handleSubmit}
               disabled={isSubmitDisabled}
               className={`
                                 w-full max-w-md text-lg py-6 font-semibold transition-all duration-300
@@ -345,7 +412,7 @@ export const ProductReviewStep: React.FC<ProductReviewStepProps> = ({ products, 
               size="lg"
             >
               {isSubmitDisabled ? (
-                <>Complétez toutes les évaluations</>
+                <>Veuillez noter tous les produits et laisser un avis</>
               ) : (
                 <>
                   <CheckCircle2 className="h-5 w-5 mr-2" />

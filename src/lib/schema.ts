@@ -34,7 +34,6 @@ export const RadioOptionSchema = z.object({
   label: z.string(),
   image: z.string().url().optional(),
 });
-// ✅ FIX: Export the inferred type for use in other components.
 export type RadioOption = z.infer<typeof RadioOptionSchema>;
 
 export const RadioQuestionSchema = z.object({
@@ -94,7 +93,6 @@ export const QuestionsDataSchema = z.object({
 }).optional();
 
 
-// ✅ TYPES: Export de types inférés avec des noms clairs et non-conflictuels
 export type QuestionData = z.infer<typeof QuestionsDataSchema>;
 export type Question = z.infer<typeof QuestionSchema>;
 export type ProductsQuestion = z.infer<typeof ProductsQuestionSchema>;

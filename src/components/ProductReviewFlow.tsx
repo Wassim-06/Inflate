@@ -1,3 +1,4 @@
+// src/components/ProductReviewFlow.tsx
 "use client"
 
 import type React from "react"
@@ -5,37 +6,63 @@ import { useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { ProductReviewStep } from "./steps/ProductReviewStep"
 import { TrustpilotStep } from "./steps/TrustpilotStep"
-import type { Product, Branding } from "@/lib/schema"
-import type { ProductReview } from "@/lib/type"
+import { GeneralQuestionsStep } from "./steps/GeneralQuestionsStep"
+import type { Product, Branding, Question } from "@/lib/schema"
+import type { ProductReview, AnswerValue } from "@/lib/type"
 import { Progress } from "./ui/progress"
-import { Button } from "./ui/button"
 import { Spinner } from "./spinner"
 import { Card } from "./ui/card"
-import { RotateCcw, CheckCircle2 } from "lucide-react"
+import { Button } from "./ui/button"
+import { CheckCircle2 } from "lucide-react"
+
+// Payload combiné pour l'envoi
+interface ReviewPayload {
+  productReviews: Record<string, ProductReview>
+  additionalQuestions: Record<string, AnswerValue>
+}
+
+// Simulation d'envoi des avis avec feedback amélioré
+async function postReviews(payload: ReviewPayload) {
+  console.log("🚀 Envoi des avis vers l'API...", payload)
+  // Simulation d'un délai réaliste
+  return new Promise((resolve) => setTimeout(resolve, 1200))
+}
 
 interface ProductReviewFlowProps {
   products: Product[]
   branding: Branding
   trustpilotLink: string
+  questions: Question[]
 }
 
-// Simulation d'envoi des avis avec feedback amélioré
-async function postReviews(reviews: Record<string, ProductReview>) {
-  console.log("🚀 Envoi des avis vers l'API...", reviews)
-  // Simulation d'un délai réaliste
-  return new Promise((resolve) => setTimeout(resolve, 1200))
-}
+export const ProductReviewFlow: React.FC<ProductReviewFlowProps> = ({
+  products,
+  branding,
+  trustpilotLink,
+  questions,
+}) => {
+  const initialReviews: Record<string, ProductReview> = Object.fromEntries(
+    products.map((p: Product) => [p.id, { rating: 0, comment: "" }]),
+  )
 
-export const ProductReviewFlow: React.FC<ProductReviewFlowProps> = ({ products, branding, trustpilotLink }) => {
-  const [step, setStep] = useState<"review" | "trustpilot">("review")
+  const [step, setStep] = useState<"review" | "general" | "trustpilot">("review")
   const [isLoading, setIsLoading] = useState(false)
   const [loadingProgress, setLoadingProgress] = useState(0)
+  const [generalAnswers, setGeneralAnswers] = useState<Record<string, AnswerValue>>({})
+  const [productReviews, setProductReviews] = useState<Record<string, ProductReview>>(initialReviews)
 
-  const handleReviewSubmit = async (reviews: Record<string, ProductReview>) => {
+  // Étape 1 : l'utilisateur soumet les avis produits, on les garde et on passe au formulaire général
+  const handleReviewNext = (reviews: Record<string, ProductReview>) => {
+    setProductReviews(reviews)
+    setStep("general")
+  }
+
+  // Étape 2 : on reçoit les réponses générales, on envoie tout et on passe à Trustpilot
+  const handleGeneralSubmit = async (answers: Record<string, AnswerValue>) => {
+    setGeneralAnswers(answers)
     setIsLoading(true)
     setLoadingProgress(0)
 
-    // Animation du progress pendant le chargement
     const progressInterval = setInterval(() => {
       setLoadingProgress((prev) => {
         if (prev >= 90) {
@@ -47,10 +74,11 @@ export const ProductReviewFlow: React.FC<ProductReviewFlowProps> = ({ products, 
     }, 120)
 
     try {
-      await postReviews(reviews)
+      await postReviews({
+        productReviews,
+        additionalQuestions: answers,
+      })
       setLoadingProgress(100)
-
-      // Petit délai pour montrer le 100%
       setTimeout(() => {
         setIsLoading(false)
         setStep("trustpilot")
@@ -71,9 +99,19 @@ export const ProductReviewFlow: React.FC<ProductReviewFlowProps> = ({ products, 
   const handleRestart = () => {
     setStep("review")
     setLoadingProgress(0)
+    setGeneralAnswers({})
+    setProductReviews(initialReviews)
   }
 
-  const progressValue = step === "review" ? 50 : 100
+  // Mapping de progression pour 3 étapes
+  const progressMap: Record<typeof step, number> = {
+    review: 33,
+    general: 66,
+    trustpilot: 100,
+  }
+  const progressValue = progressMap[step]
+
+  const stepLabel = step === "review" ? "1" : step === "general" ? "2" : "3"
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
@@ -85,19 +123,24 @@ export const ProductReviewFlow: React.FC<ProductReviewFlowProps> = ({ products, 
               <div className="flex items-center gap-3">
                 <div
                   className={`
-                                    w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold
-                                    ${step === "review" ? "bg-primary text-primary-foreground" : "bg-green-500 text-white"}
-                                `}
+                    w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold
+                    ${step === "trustpilot" ? "bg-green-500 text-white" : "bg-primary text-primary-foreground"}
+                  `}
                 >
-                  {step === "review" ? "1" : <CheckCircle2 className="h-4 w-4" />}
+                  {step === "trustpilot" ? <CheckCircle2 className="h-4 w-4" /> : stepLabel}
                 </div>
                 <span className="text-sm font-medium text-muted-foreground">
-                  Étape {step === "review" ? "1" : "2"} sur 2
+                  Étape {step === "review" ? "1" : step === "general" ? "2" : "3"} sur 3
                 </span>
+              </div>
+              <div>
+                <Button variant="ghost" size="sm" onClick={handleRestart}>
+                  Recommencer
+                </Button>
               </div>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 mt-4">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Progression</span>
                 <span className="font-medium">{progressValue}%</span>
@@ -111,20 +154,28 @@ export const ProductReviewFlow: React.FC<ProductReviewFlowProps> = ({ products, 
         <AnimatePresence mode="wait">
           <motion.div
             key={step}
-            initial={{ opacity: 0, x: step === "trustpilot" ? 50 : -50 }}
+            initial={{
+              opacity: 0,
+              x: step === "trustpilot" ? 50 : step === "review" ? -50 : 50,
+            }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: step === "trustpilot" ? -50 : 50 }}
+            exit={{
+              opacity: 0,
+              x: step === "trustpilot" ? -50 : step === "review" ? 50 : -50,
+            }}
             transition={{ duration: 0.5, ease: "easeInOut" }}
           >
             {step === "review" ? (
-              <ProductReviewStep products={products} branding={branding} onNext={handleReviewSubmit} />
+              <ProductReviewStep products={products} branding={branding} onNext={handleReviewNext} />
+            ) : step === "general" ? (
+              <GeneralQuestionsStep questions={questions} branding={branding} onNext={handleGeneralSubmit} />
             ) : (
               <TrustpilotStep onPublish={handlePublishToTrustpilot} />
             )}
           </motion.div>
         </AnimatePresence>
 
-        {/* Loading Overlay amélioré */}
+        {/* Loading Overlay amélioré (pour envoi après questions générales) */}
         <AnimatePresence>
           {isLoading && (
             <motion.div
