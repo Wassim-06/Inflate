@@ -9,7 +9,7 @@ import { ThemeProvider } from './components/theme-provider.tsx' // 👈 Importer
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <Router>
-      <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+      <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
         <Routes>
           <Route path="" element={<App />} />
           <Route path="/:orderId/:firstQuestionValue" element={<App />} />

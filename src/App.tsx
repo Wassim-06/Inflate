@@ -36,7 +36,7 @@ const App: React.FC = () => {
     }
 
     return (
-        <ThemeProvider defaultTheme="system" storageKey="ui-theme">
+        <ThemeProvider defaultTheme="light" storageKey="ui-theme">
             <div style={{ '--brand-color': branding?.brandColor } as React.CSSProperties}>
                 <ProductReviewFlow
                     products={products}

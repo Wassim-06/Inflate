@@ -1,4 +1,9 @@
-// src/components/spinner.tsx
-import { Loader2 } from 'lucide-react'
+import { cn } from "@/lib/utils"
 
-export const Spinner: React.FC = () => <Loader2 className="h-4 w-4 animate-spin" />
+interface SpinnerProps {
+  className?: string
+}
+
+export function Spinner({ className }: SpinnerProps) {
+  return <div className={cn("animate-spin rounded-full h-8 w-8 border-b-2 border-primary", className)} />
+}

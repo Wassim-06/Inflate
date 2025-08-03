@@ -1,78 +1,54 @@
-// src/components/star-rating.tsx
-import { cn } from "@/lib/utils";
-import { Star } from 'lucide-react';
-import { useState } from "react";
+"use client"
+
+import type React from "react"
+import { useState } from "react"
+import { Star } from "lucide-react"
+import { motion } from "framer-motion"
 
 interface StarRatingProps {
-  value: number;
-  onChange?: (val: number) => void;
-  size?: number;
-  readOnly?: boolean;
-  // Ajout d'une prop 'variant' pour gérer les contextes de couleur
-  variant?: 'default' | 'inverted';
+  value: number
+  onChange: (rating: number) => void
+  size?: number
+  "aria-labelledby"?: string
 }
 
 export const StarRating: React.FC<StarRatingProps> = ({
   value,
   onChange,
-  size = 22,
-  readOnly = false,
-  // Valeur par défaut pour la nouvelle prop
-  variant = 'default',
+  size = 24,
+  "aria-labelledby": ariaLabelledBy,
 }) => {
-  const [hoverValue, setHoverValue] = useState<number | undefined>(undefined);
-
-  const handleMouseOver = (n: number) => {
-    if (readOnly) return;
-    setHoverValue(n);
-  }
-
-  const handleMouseLeave = () => {
-    if (readOnly) return;
-    setHoverValue(undefined);
-  }
-
-  const handleClick = (n: number) => {
-    if (readOnly || !onChange) return;
-    onChange(n);
-  }
-
-  // Logique pour choisir les bonnes couleurs en fonction de la variante
-  const filledColorClass = variant === 'inverted'
-    ? 'fill-primary-foreground text-primary-foreground'
-    : 'fill-primary text-primary';
-
-  const emptyColorClass = variant === 'inverted'
-    ? 'fill-transparent text-primary-foreground/50'
-    : 'fill-transparent text-muted-foreground/50';
+  const [hoverValue, setHoverValue] = useState<number>(0)
 
   return (
-    <div className={cn("flex items-center gap-1", { "cursor-pointer": !readOnly, "cursor-default": readOnly })}>
-      {Array.from({ length: 5 }).map((_, i) => {
-        const n = i + 1;
-        const displayValue = hoverValue ?? value;
-        const isFilled = n <= displayValue;
-
+    <div
+      className="flex gap-1"
+      role="radiogroup"
+      aria-labelledby={ariaLabelledBy}
+      onMouseLeave={() => setHoverValue(0)}
+    >
+      {[1, 2, 3, 4, 5].map((star) => {
+        const isActive = star <= (hoverValue || value)
         return (
-          <button
-            key={n}
+          <motion.button
+            key={star}
             type="button"
-            aria-label={`Noter ${n} sur 5`}
-            disabled={readOnly}
-            onClick={() => handleClick(n)}
-            onMouseOver={() => handleMouseOver(n)}
-            onMouseLeave={handleMouseLeave}
-            className="p-1 transition-transform duration-150 ease-in-out hover:scale-125 active:scale-100 disabled:cursor-default disabled:transform-none"
+            role="radio"
+            aria-checked={star === value}
+            className="focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded"
+            onMouseEnter={() => setHoverValue(star)}
+            onClick={() => onChange(star)}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 400, damping: 17 }}
           >
             <Star
               size={size}
-              className={cn(
-                'transition-colors duration-200',
-                // Applique la bonne classe de couleur ici
-                isFilled ? filledColorClass : emptyColorClass
-              )}
+              className={`transition-all duration-200 ${
+                isActive ? "fill-yellow-400 text-yellow-400 drop-shadow-sm" : "text-gray-300 hover:text-yellow-300"
+              }`}
             />
-          </button>
+          </motion.button>
         )
       })}
     </div>
