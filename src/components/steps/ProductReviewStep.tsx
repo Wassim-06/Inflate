@@ -52,11 +52,12 @@ const ProductReviewCard: React.FC<{
     >
       <Card
         className={`
-                overflow-hidden transition-all duration-300 ease-out relative
-                ${isHovered ? "shadow-xl scale-[1.02] dark:shadow-primary/20" : "shadow-md hover:shadow-lg"}
-                ${isCompleted ? "ring-2 ring-green-500/20 bg-green-50/50 dark:bg-green-950/20" : ""}
-                border-l-4 ${isCompleted ? "border-l-green-500" : "border-l-transparent"}
-            `}
+          overflow-hidden transition-all duration-300 ease-out relative
+          border-none focus:outline-none focus-visible:ring-0
+          ${isHovered ? "shadow-xl scale-[1.02] dark:shadow-primary/20" : "shadow-md hover:shadow-lg"}
+          ${isCompleted ? "ring-2 ring-green-500/20 bg-green-50/50 dark:bg-green-950/20" : ""}
+          border-l-4 ${isCompleted ? "border-l-green-500" : "border-l-transparent"}
+        `}
       >
         <AnimatePresence>
           {showSuccess && (
