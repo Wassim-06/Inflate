@@ -1,33 +1,23 @@
 // src/lib/type.ts
-export type QuestionType = 'nps' | 'products' | 'textarea' | 'multi-choice'
+export type QuestionType = 'nps' | 'products' | 'textarea' | 'multi-choice' | 'scale' | 'yes-no';
 
 export interface BaseQuestion<T = unknown> {
-  id: string
-  type: QuestionType
-  prompt: string
-  required?: boolean
-  // Whether to POST after it's answered (default true)
-  postImmediately?: boolean
-  // Optional: transform answer before POST
-  serialize?: (answer: T) => unknown
+ id: string
+ type: QuestionType
+ prompt: string
+ required?: boolean
 }
 
 export interface NpsQuestion extends BaseQuestion<number> {
   type: 'nps'
-  scale?: number // default 10
+  scale?: number
   leftLabel?: string
   rightLabel?: string
 }
 
-export interface ProductItem {
-  id: string
-  name: string
-  image?: string
-}
-
 export interface ProductsQuestion extends BaseQuestion<ProductReviewAnswer> {
   type: 'products'
-  products: ProductItem[]
+  products: { id: string; name: string; image?: string; }[]
 }
 
 export interface ProductReviewAnswer {
@@ -45,13 +35,22 @@ interface MultiChoiceQuestion extends BaseQuestion<string> {
   options: string[]
 }
 
-export type Question = NpsQuestion | ProductsQuestion | TextareaQuestion | MultiChoiceQuestion
+interface ScaleQuestion extends BaseQuestion<number> {
+  type: 'scale';
+  scale: number;
+  leftLabel?: string;
+  rightLabel?: string;
+}
 
+interface YesNoQuestion extends BaseQuestion<string> {
+  type: 'yes-no';
+}
+
+export type Question = NpsQuestion | ProductsQuestion | TextareaQuestion | MultiChoiceQuestion | ScaleQuestion | YesNoQuestion;
 
 export interface Branding {
   "logo": string
-  "color": string
-  "background": string
+  "brandColor": string
   "font": string
 }
 

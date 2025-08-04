@@ -2,7 +2,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { ProductReviewStep } from "./steps/ProductReviewStep"
 import { TrustpilotStep } from "./steps/TrustpilotStep"
@@ -50,6 +50,11 @@ export const ProductReviewFlow: React.FC<ProductReviewFlowProps> = ({
   const [loadingProgress, setLoadingProgress] = useState(0)
   const [generalAnswers, setGeneralAnswers] = useState<Record<string, AnswerValue>>({})
   const [productReviews, setProductReviews] = useState<Record<string, ProductReview>>(initialReviews)
+
+  // scroll to top on step change
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }, [step])
 
   // Étape 1 : l'utilisateur soumet les avis produits, on les garde et on passe au formulaire général
   const handleReviewNext = (reviews: Record<string, ProductReview>) => {

@@ -23,24 +23,16 @@ export const ScaleQuestionSchema = z.object({
   id: z.string(),
   type: z.literal("scale"),
   prompt: z.string(),
-  scale: z.number(),
-  leftLabel: z.string(),
-  rightLabel: z.string(),
+  scale: z.number().min(2).max(10),
+  leftLabel: z.string().optional(),
+  rightLabel: z.string().optional(),
 });
 
-// Schema for Radio questions (A/B test)
-export const RadioOptionSchema = z.object({
+// Schema for Yes/No questions
+export const YesNoQuestionSchema = z.object({
   id: z.string(),
-  label: z.string(),
-  image: z.string().url().optional(),
-});
-export type RadioOption = z.infer<typeof RadioOptionSchema>;
-
-export const RadioQuestionSchema = z.object({
-  id: z.string(),
-  type: z.literal("radio"),
+  type: z.literal("yes-no"),
   prompt: z.string(),
-  options: z.array(RadioOptionSchema),
 });
 
 // Schema for questions with products
@@ -74,7 +66,7 @@ export const QuestionSchema = z.discriminatedUnion("type", [
   TextareaQuestionSchema,
   MultiChoiceQuestionSchema,
   ScaleQuestionSchema,
-  RadioQuestionSchema,
+  YesNoQuestionSchema,
 ]);
 
 // Schema for branding data
@@ -85,21 +77,12 @@ export const BrandingSchema = z.object({
   font: z.string(),
 });
 
-// Schema for the overall response data from the API
-export const QuestionsDataSchema = z.object({
-  questions: z.array(QuestionSchema),
-  products: z.array(ProductSchema).optional(),
-  branding: z.array(BrandingSchema),
-}).optional();
-
-
-export type QuestionData = z.infer<typeof QuestionsDataSchema>;
 export type Question = z.infer<typeof QuestionSchema>;
 export type ProductsQuestion = z.infer<typeof ProductsQuestionSchema>;
 export type NpsQuestion = z.infer<typeof NPSSchema>;
 export type TextareaQuestion = z.infer<typeof TextareaQuestionSchema>;
 export type MultiChoiceQuestion = z.infer<typeof MultiChoiceQuestionSchema>;
 export type ScaleQuestion = z.infer<typeof ScaleQuestionSchema>;
-export type RadioQuestion = z.infer<typeof RadioQuestionSchema>;
+export type YesNoQuestion = z.infer<typeof YesNoQuestionSchema>;
 export type Branding = z.infer<typeof BrandingSchema>;
 export type Product = z.infer<typeof ProductSchema>;

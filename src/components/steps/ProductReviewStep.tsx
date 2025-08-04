@@ -22,6 +22,7 @@ interface ProductReviewStepProps {
   onNext: (reviews: Record<string, ProductReview>) => void
 }
 
+// Le composant ProductReviewCard reste inchangé...
 const ProductReviewCard: React.FC<{
   product: Product
   review: ProductReview
@@ -71,7 +72,7 @@ const ProductReviewCard: React.FC<{
                 <CheckCircle2 className="h-4 w-4" />
               </div>
             </motion.div>
-          )}
+          )} 
         </AnimatePresence>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -86,7 +87,7 @@ const ProductReviewCard: React.FC<{
                   <CheckCircle2 className="h-3 w-3 mr-1" />
                   Évalué
                 </Badge>
-              )}
+              )} 
             </div>
 
             <div className="space-y-2">
@@ -129,7 +130,7 @@ const ProductReviewCard: React.FC<{
                           ? "Moyen"
                           : "À améliorer"}
                 </motion.p>
-              )}
+              )} 
             </div>
 
             <div className="space-y-2">
@@ -143,16 +144,16 @@ const ProductReviewCard: React.FC<{
                 onChange={(e) => onUpdate("comment", e.target.value)}
                 rows={3}
                 className={`
-                                    transition-all duration-200 text-sm resize-none
-                                    focus:ring-2 focus:ring-primary/20 focus:border-primary
-                                    ${review.comment ? "bg-blue-50/50 dark:bg-blue-950/20" : ""}
-                                `}
+                  transition-all duration-200 text-sm resize-none
+                  focus:ring-2 focus:ring-primary/20 focus:border-primary
+                  ${review.comment ? "bg-blue-50/50 dark:bg-blue-950/20" : ""}
+                `}
               />
               {review.comment && (
                 <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xs text-muted-foreground">
                   {review.comment.length} caractères
                 </motion.p>
-              )}
+              )} 
             </div>
           </div>
 
@@ -173,14 +174,14 @@ const ProductReviewCard: React.FC<{
                   <div className="absolute -top-2 -right-2 bg-green-500 text-white rounded-full p-1">
                     <CheckCircle2 className="h-4 w-4" />
                   </div>
-                )}
+                )} 
               </motion.div>
             ) : (
               <div className="flex flex-col items-center justify-center h-28 w-28 rounded-xl bg-muted text-muted-foreground text-xs border-2 border-dashed">
                 <Sparkles className="h-6 w-6 mb-1" />
                 Photo indisponible
               </div>
-            )}
+            )} 
           </div>
         </div>
       </Card>
@@ -194,15 +195,10 @@ export const ProductReviewStep: React.FC<ProductReviewStepProps> = ({ products, 
   )
   const [globalRating, setGlobalRating] = useState<number>(0)
   const [useGlobalRating, setUseGlobalRating] = useState<boolean>(false)
-  
-  // Nouvel état pour l'avis général obligatoire
   const [globalComment, setGlobalComment] = useState<string>("")
   const [globalCommentError, setGlobalCommentError] = useState<boolean>(false)
-  
-  const [completedCount, setCompletedCount] = useState(0)
 
   const handleUpdateReview = (productId: string, field: keyof ProductReview, value: string | number) => {
-    // Désactiver le switch global si l'utilisateur modifie une note spécifique
     if (useGlobalRating && field === "rating") {
       setUseGlobalRating(false)
     }
@@ -222,36 +218,40 @@ export const ProductReviewStep: React.FC<ProductReviewStepProps> = ({ products, 
     }
   }, [globalRating, useGlobalRating])
 
-  useEffect(() => {
-    const completed = Object.values(reviews).filter((review) => review.rating > 0).length
-    setCompletedCount(completed)
-  }, [reviews])
-
-  // Le bouton est désormais désactivé si toutes les notes ne sont pas remplies OU si l'avis général est vide
-  const isSubmitDisabled = Object.values(reviews).some((review) => review.rating === 0) || globalComment.trim() === ""
+  const allProductsRated = !Object.values(reviews).some((review) => review.rating === 0)
+  const globalCommentMissing = useGlobalRating && globalComment.trim() === ""
+  const isSubmitDisabled = !allProductsRated || globalCommentMissing
 
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
   }
-
-  // Nouvelle fonction de soumission qui gère l'avis général
+  
   const handleSubmit = () => {
-    if (globalComment.trim() === "") {
+    // La vérification de l'erreur ne se déclenche que si la notation globale est active
+    if (useGlobalRating && globalComment.trim() === "") {
       setGlobalCommentError(true)
       return
     }
 
     const finalReviews: Record<string, ProductReview> = {}
     for (const productId in reviews) {
+      const individualComment = reviews[productId].comment.trim()
+      const useGlobalAsFallback = useGlobalRating && individualComment === ""
+
       finalReviews[productId] = {
         ...reviews[productId],
-        // Applique l'avis général si le commentaire du produit est vide
-        comment: reviews[productId].comment.trim() || globalComment.trim(),
+        comment: useGlobalAsFallback ? globalComment.trim() : individualComment,
       }
     }
     onNext(finalReviews)
   }
+  
+  let submitHelperText = "Veuillez noter tous les produits pour continuer."
+  if (allProductsRated && globalCommentMissing) {
+    submitHelperText = "N'oubliez pas votre avis général pour finaliser."
+  }
+
 
   return (
     <TooltipProvider>
@@ -271,7 +271,7 @@ export const ProductReviewStep: React.FC<ProductReviewStepProps> = ({ products, 
               whileHover={{ scale: 1.05 }}
               transition={{ type: "spring", stiffness: 400, damping: 17 }}
             />
-          )}
+          )} 
           <h1 className="text-3xl md:text-5xl font-bold tracking-tighter bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
             Évaluez nos produits
           </h1>
@@ -294,7 +294,7 @@ export const ProductReviewStep: React.FC<ProductReviewStepProps> = ({ products, 
                   <h3 className="font-semibold text-lg">Évaluation rapide</h3>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Gagnez du temps en attribuant la même note à tous les produits
+                  Gagnez du temps en attribuant la même note à tous les produits.
                 </p>
                 <div className="flex items-center space-x-3">
                   <Switch id="global-rating-switch" checked={useGlobalRating} onCheckedChange={setUseGlobalRating} />
@@ -327,52 +327,58 @@ export const ProductReviewStep: React.FC<ProductReviewStepProps> = ({ products, 
           </Card>
         </motion.div>
 
-        {/* Nouvelle section pour l'avis général obligatoire */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.3 }}
-        >
-          <Card className={`p-6 transition-all ${globalCommentError ? 'ring-2 ring-red-500' : 'border-border'}`}>
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <label htmlFor="global-comment" className="text-lg font-semibold tracking-tight">
-                  Votre avis général *
-                </label>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Ce texte est primordial pour nous. Il sera appliqué aux produits que vous n'avez pas commentés individuellement.
-              </p>
-              <Textarea
-                id="global-comment"
-                placeholder="Comment s'est passée votre expérience globale avec nos produits ?"
-                value={globalComment}
-                onChange={(e) => {
-                  setGlobalComment(e.target.value)
-                  if (globalCommentError) setGlobalCommentError(false)
-                }}
-                rows={4}
-                className="text-sm"
-                required
-              />
-              <AnimatePresence>
-                {globalCommentError && (
-                  <motion.p 
-                    initial={{ opacity: 0, y: -10 }} 
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="text-sm text-red-600 flex items-center gap-2">
-                    <AlertCircle className="h-4 w-4" />
-                    Veuillez laisser un avis général pour continuer.
-                  </motion.p>
-                )}
-              </AnimatePresence>
-            </div>
-          </Card>
-        </motion.div>
-
+        {/* Section "Avis Général" maintenant conditionnelle et obligatoire */}
+        <AnimatePresence>
+          {useGlobalRating && (
+            <motion.div
+              initial={{ opacity: 0, y: -20, height: 0 }}
+              animate={{ opacity: 1, y: 0, height: "auto" }}
+              exit={{ opacity: 0, y: -20, height: 0 }}
+              transition={{ duration: 0.4, ease: "easeInOut" }}
+              className="overflow-hidden"
+            >
+              <Card className={`p-6 transition-all border ${globalCommentError ? 'ring-2 ring-offset-2 ring-red-500 border-red-500' : 'border-border'}`}>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <label htmlFor="global-comment" className="text-lg font-semibold tracking-tight">
+                      Votre avis général *
+                    </label>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Ce texte sera appliqué aux produits que vous n'avez pas commentés individuellement.
+                  </p>
+                  <Textarea
+                    id="global-comment"
+                    placeholder="Comment s'est passée votre expérience globale avec nos produits ?"
+                    value={globalComment}
+                    onChange={(e) => {
+                      setGlobalComment(e.target.value)
+                      if (e.target.value.trim()) setGlobalCommentError(false)
+                    }}
+                    rows={4}
+                    className="text-sm"
+                    required
+                  />
+                  <AnimatePresence>
+                    {globalCommentError && (
+                      <motion.p 
+                        initial={{ opacity: 0, y: -10 }} 
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="text-sm text-red-600 flex items-center gap-2">
+                        <AlertCircle className="h-4 w-4" />
+                        Veuillez laisser un avis général pour continuer.
+                      </motion.p>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </Card>
+            </motion.div>
+          )} 
+        </AnimatePresence>
+        
         {/* Products List */}
-        <motion.div className="space-y-6" variants={containerVariants}>
+        <div className="space-y-6">
           {products.map((product: Product, index) => (
             <ProductReviewCard
               key={product.id}
@@ -383,7 +389,7 @@ export const ProductReviewStep: React.FC<ProductReviewStepProps> = ({ products, 
               index={index}
             />
           ))}
-        </motion.div>
+        </div>
 
         {/* Submit Section */}
         <motion.div
@@ -400,20 +406,20 @@ export const ProductReviewStep: React.FC<ProductReviewStepProps> = ({ products, 
                 className="text-sm text-muted-foreground flex items-center gap-2"
               >
                 <Info className="h-4 w-4" />
-                Veuillez noter tous les produits et laisser un avis général
+                {submitHelperText}
               </motion.p>
             )}
             <Button
               onClick={handleSubmit}
               disabled={isSubmitDisabled}
               className={`
-                                w-full max-w-md text-lg py-6 font-semibold transition-all duration-300
-                                ${!isSubmitDisabled ? "shadow-lg hover:shadow-xl hover:scale-[1.02]" : ""}
-                            `}
+                w-full max-w-md text-lg py-6 font-semibold transition-all duration-300
+                ${!isSubmitDisabled ? "shadow-lg hover:shadow-xl hover:scale-[1.02]" : ""}
+              `}
               size="lg"
             >
               {isSubmitDisabled ? (
-                <>Veuillez noter tous les produits et laisser un avis</>
+                <>{submitHelperText}</>
               ) : (
                 <>
                   <CheckCircle2 className="h-5 w-5 mr-2" />
