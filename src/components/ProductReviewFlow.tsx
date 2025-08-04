@@ -12,8 +12,8 @@ import type { ProductReview, AnswerValue } from "@/lib/type"
 import { Progress } from "./ui/progress"
 import { Spinner } from "./spinner"
 import { Card } from "./ui/card"
-import { Button } from "./ui/button"
-import { CheckCircle2 } from "lucide-react"
+// L'import du Button n'est plus nécessaire ici si non utilisé ailleurs dans ce composant
+// import { Button } from "./ui/button" 
 
 // Payload combiné pour l'envoi
 interface ReviewPayload {
@@ -101,51 +101,22 @@ export const ProductReviewFlow: React.FC<ProductReviewFlowProps> = ({
     }
   }
 
-  const handleRestart = () => {
-    setStep("review")
-    setLoadingProgress(0)
-    setGeneralAnswers({})
-    setProductReviews(initialReviews)
-  }
-
-  // Mapping de progression pour 3 étapes
+  // ## CHANGEMENT 1: La progression est maintenant sur 2 étapes ##
   const progressMap: Record<typeof step, number> = {
-    review: 33,
-    general: 66,
-    trustpilot: 100,
+    review: 50,
+    general: 100,
+    trustpilot: 100, // Le processus est considéré comme terminé
   }
   const progressValue = progressMap[step]
-
-  const stepLabel = step === "review" ? "1" : step === "general" ? "2" : "3"
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       <div className="container mx-auto p-4 md:p-8">
         {/* Header avec progress */}
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="max-w-4xl mx-auto mb-8">
-          <Card className="p-6 bg-card/50 backdrop-blur-sm border-border/50">
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-              <div className="flex items-center gap-3">
-                <div
-                  className={`
-                    w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold
-                    ${step === "trustpilot" ? "bg-green-500 text-white" : "bg-primary text-primary-foreground"}
-                  `}
-                >
-                  {step === "trustpilot" ? <CheckCircle2 className="h-4 w-4" /> : stepLabel}
-                </div>
-                <span className="text-sm font-medium text-muted-foreground">
-                  Étape {step === "review" ? "1" : step === "general" ? "2" : "3"} sur 3
-                </span>
-              </div>
-              <div>
-                <Button variant="ghost" size="sm" onClick={handleRestart}>
-                  Recommencer
-                </Button>
-              </div>
-            </div>
-
-            <div className="space-y-2 mt-4">
+          <Card className="p-4 bg-card/50 backdrop-blur-sm border-border/50">
+            {/* Le bouton Recommencer a été retiré */}
+            <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Progression</span>
                 <span className="font-medium">{progressValue}%</span>
@@ -159,16 +130,10 @@ export const ProductReviewFlow: React.FC<ProductReviewFlowProps> = ({
         <AnimatePresence mode="wait">
           <motion.div
             key={step}
-            initial={{
-              opacity: 0,
-              x: step === "trustpilot" ? 50 : step === "review" ? -50 : 50,
-            }}
+            initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{
-              opacity: 0,
-              x: step === "trustpilot" ? -50 : step === "review" ? 50 : -50,
-            }}
-            transition={{ duration: 0.5, ease: "easeInOut" }}
+            exit={{ opacity: 0, x: -50 }}
+            transition={{ duration: 0.4, ease: "easeInOut" }}
           >
             {step === "review" ? (
               <ProductReviewStep products={products} branding={branding} onNext={handleReviewNext} />
@@ -180,7 +145,7 @@ export const ProductReviewFlow: React.FC<ProductReviewFlowProps> = ({
           </motion.div>
         </AnimatePresence>
 
-        {/* Loading Overlay amélioré (pour envoi après questions générales) */}
+        {/* Loading Overlay amélioré */}
         <AnimatePresence>
           {isLoading && (
             <motion.div

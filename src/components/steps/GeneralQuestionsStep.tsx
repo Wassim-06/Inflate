@@ -33,13 +33,13 @@ const QuestionCard: React.FC<{
             onChange={(e) => onChange(e.target.value)}
             placeholder={question.placeholder || "Votre réponse..."}
             className="mt-2 text-sm"
-            rows={4}
+            rows={3} // Hauteur réduite
           />
         )
       case "multi-choice": {
         const q = question as MultiChoiceQuestion
         return (
-          <div className="mt-3 flex flex-wrap gap-3">
+          <div className="mt-3 flex flex-wrap gap-2">
             {q.options.map((option) => (
               <Button
                 key={option}
@@ -55,18 +55,18 @@ const QuestionCard: React.FC<{
       }
       case "yes-no":
         return (
-          <div className="mt-3 grid grid-cols-2 gap-4">
+          <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Button
               variant={(value as string) === "Oui" ? "default" : "outline"}
               onClick={() => onChange("Oui")}
-              className="h-auto py-4 text-base transition-transform duration-200 ease-out hover:scale-105"
+              className="h-auto py-3 text-base transition-transform duration-200 ease-out hover:scale-105"
             >
               <ThumbsUp className="mr-2 h-5 w-5" /> Oui
             </Button>
             <Button
               variant={(value as string) === "Non" ? "default" : "outline"}
               onClick={() => onChange("Non")}
-              className="h-auto py-4 text-base transition-transform duration-200 ease-out hover:scale-105"
+              className="h-auto py-3 text-base transition-transform duration-200 ease-out hover:scale-105"
             >
               <ThumbsDown className="mr-2 h-5 w-5" /> Non
             </Button>
@@ -75,8 +75,8 @@ const QuestionCard: React.FC<{
       case "scale": {
         const q = question as ScaleQuestion
         return (
-          <div className="mt-4 flex flex-col items-center gap-4">
-            <div className="flex w-full items-center gap-2 md:gap-3">
+          <div className="mt-4 flex flex-col items-center gap-3">
+            <div className="flex w-full items-center gap-2">
               {[...Array(q.scale)].map((_, i) => {
                 const ratingValue = i + 1
                 return (
@@ -84,7 +84,7 @@ const QuestionCard: React.FC<{
                     key={ratingValue}
                     variant={(value as number) === ratingValue ? "default" : "outline"}
                     onClick={() => onChange(ratingValue)}
-                    className="h-12 w-12 flex-1 rounded-md text-lg font-semibold transition-transform duration-200 ease-out hover:scale-110"
+                    className="h-10 w-10 md:h-11 md:w-11 flex-1 rounded-md text-base font-semibold transition-transform duration-200 ease-out hover:scale-105"
                     size="icon"
                   >
                     {ratingValue}
@@ -93,7 +93,7 @@ const QuestionCard: React.FC<{
               })}
             </div>
             {(q.leftLabel || q.rightLabel) && (
-              <div className="flex justify-between w-full text-sm text-muted-foreground px-1">
+              <div className="flex justify-between w-full text-xs text-muted-foreground px-1">
                 <span>{q.leftLabel}</span>
                 <span>{q.rightLabel}</span>
               </div>
@@ -107,8 +107,8 @@ const QuestionCard: React.FC<{
   }
 
   return (
-    <Card className="p-6 transition-all duration-300 hover:shadow-xl hover:border-primary/20">
-      <Label className="text-base font-semibold">
+    <Card className="p-4 md:p-5 transition-all duration-300 hover:shadow-lg hover:border-primary/10">
+      <Label className="text-base font-semibold tracking-tight">
         {question.prompt}
       </Label>
       {renderQuestionInput()}
@@ -127,25 +127,25 @@ export const GeneralQuestionsStep: React.FC<GeneralQuestionsStepProps> = ({ ques
 
   return (
     <motion.div
-      className="space-y-8 max-w-4xl mx-auto"
-      initial={{ opacity: 0, x: 100 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -100 }}
+      className="space-y-6 max-w-2xl mx-auto" // Largeur max réduite pour la densité
+      initial={{ opacity: 0, y: 50 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -50 }}
       transition={{ duration: 0.5, ease: "easeInOut" }}
     >
-      <div className="text-center space-y-4">
+      <div className="text-center space-y-3">
         {branding.logo && (
-          <img src={branding.logo} alt="Logo" className="mx-auto h-22 mb-6" />
+          <img src={branding.logo} alt="Logo" className="mx-auto h-16 mb-4" />
         )}
-        <h1 className="text-3xl md:text-5xl font-bold tracking-tighter">
+        <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
           Quelques questions de plus
         </h1>
-        <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
+        <p className="text-muted-foreground max-w-2xl mx-auto text-base">
           Vos réponses nous aident à mieux vous servir.
         </p>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-4">
         {questions.map((q) => (
           <QuestionCard
             key={q.id}
@@ -156,23 +156,26 @@ export const GeneralQuestionsStep: React.FC<GeneralQuestionsStepProps> = ({ ques
         ))}
       </div>
 
-      <div className="pt-8 border-t border-border">
-        <div className="flex flex-col items-center gap-4">
-          {isSubmitDisabled && (
-            <p className="text-sm text-muted-foreground flex items-center gap-2">
-              <Info className="h-4 w-4" />
-              Veuillez répondre à toutes les questions pour continuer
-            </p>
-          )}
+      <div className="pt-6 border-t border-border">
+        <div className="flex flex-col items-center gap-3">
           <Button
             onClick={() => onNext(answers)}
             disabled={isSubmitDisabled}
-            className="w-full max-w-md text-lg py-6 font-semibold"
+            className={`
+              w-full max-w-sm text-base font-semibold transition-all duration-300
+              ${!isSubmitDisabled ? "shadow-lg hover:shadow-xl hover:scale-102" : ""}
+            `}
             size="lg"
           >
             <CheckCircle2 className="h-5 w-5 mr-2" />
             Terminer
           </Button>
+          {isSubmitDisabled && (
+            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <Info className="h-3 w-3" />
+              Veuillez répondre à toutes les questions pour continuer
+            </p>
+          )}
         </div>
       </div>
     </motion.div>
